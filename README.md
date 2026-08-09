@@ -17,7 +17,7 @@ Unified game library for your PC.
 - Big Picture with keyboard + gamepad focus
 - Steam playtime when available
 - Add custom `.exe` games
-- Auto-update via GitHub Releases (`amarri3795/the-hub`)
+- Auto-update via GitHub Releases (`amarri3795/the-hub`) — **NSIS install only**
 
 ## Dev
 
@@ -27,36 +27,56 @@ npm install
 npm run dev
 ```
 
-## Auto-updates (GitHub Releases)
+## Install & auto-updates
 
-Packaged builds use `electron-updater` against **amarri3795/the-hub**.
+**Install once with the NSIS setup exe** from [GitHub Releases](https://github.com/amarri3795/the-hub/releases). That installed app checks `latest.yml` on launch and updates automatically.
+
+- Use the Start Menu / desktop shortcut created by the installer — **not** a portable `.exe` shortcut.
+- Portable builds are optional side downloads and **do not auto-update**.
+
+Packaged NSIS builds use `electron-updater` against **amarri3795/the-hub**.
 
 ### Publish a release so updates work
 
 1. Push the repo to GitHub (`amarri3795/the-hub`).
-2. Bump `"version"` in `package.json` (e.g. `0.4.0`).
+2. Bump `"version"` in `package.json` (e.g. `0.4.1`).
 3. Build artifacts:
 
 ```powershell
-npm run dist:portable
+npm run dist
 ```
 
-4. Create a GitHub Release with tag matching the version (e.g. `v0.4.0`).
-5. Upload the files from `release/` — at minimum the portable exe **and** the generated `latest.yml` (electron-builder writes this next to the installer when configured for GitHub publish).
+4. Create a GitHub Release with tag matching the version (e.g. `v0.4.1`).
+5. Upload from `release/`:
+   - `TheHub-<version>-setup.exe` (NSIS — required for auto-update)
+   - `latest.yml` (required)
+   - `*.blockmap` if present
+   - `TheHub-<version>-portable.exe` (optional)
 
 Or publish in one step (needs `GH_TOKEN` with `repo` scope):
 
 ```powershell
 $env:GH_TOKEN = "ghp_..."
-npx electron-builder --win portable --publish always
+npx electron-builder --win --publish always
 ```
 
 Until a Release exists, the status line may say the update check was skipped — expected in early testing / `npm run dev`.
 
-## Rebuild portable exe
+## Rebuild
 
 ```powershell
+# NSIS installer + portable + latest.yml
+npm run dist
+
+# Installer only
+npm run dist:nsis
+
+# Portable only (no auto-update)
 npm run dist:portable
 ```
 
-Output: `release/TheHub-<version>-portable.exe`
+Output:
+
+- `release/TheHub-<version>-setup.exe`
+- `release/latest.yml`
+- `release/TheHub-<version>-portable.exe` (when using `npm run dist`)

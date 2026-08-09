@@ -1,6 +1,6 @@
 {
   "name": "the-hub",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "The Hub — unified game library for your PC",
   "author": "The Hub",
@@ -11,6 +11,7 @@
     "preview": "electron-vite preview",
     "start": "electron-vite preview",
     "dist": "npm run build && electron-builder --win",
+    "dist:nsis": "npm run build && electron-builder --win nsis",
     "dist:portable": "npm run build && electron-builder --win portable"
   },
   "dependencies": {
@@ -48,8 +49,18 @@
     "win": {
       "icon": "resources/icon.png",
       "target": [
+        "nsis",
         "portable"
-      ],
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "TheHub-${version}-setup.${ext}"
+    },
+    "portable": {
       "artifactName": "TheHub-${version}-portable.${ext}"
     }
   },

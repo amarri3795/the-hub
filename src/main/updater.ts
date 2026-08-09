@@ -1,5 +1,5 @@
+import { app, type BrowserWindow } from "electron";
 import { autoUpdater } from "electron-updater";
-import type { BrowserWindow } from "electron";
 import type { UpdateStatus } from "../shared/types";
 
 let lastStatus: UpdateStatus = {
@@ -24,6 +24,8 @@ export function getUpdateStatus(): UpdateStatus {
 export function setupAutoUpdater(win: BrowserWindow): void {
   mainWindow = win;
 
+  // NSIS installs use electron-updater's standard GitHub feed (latest.yml).
+  // Portable builds do not receive auto-updates.
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
@@ -78,8 +80,17 @@ export function setupAutoUpdater(win: BrowserWindow): void {
   });
 }
 
-/** Check on app open ("login"/session start). Safe no-op in dev without publish config. */
+/** Check on app open. Skipped in development; NSIS installs use GitHub latest.yml. */
 export async function checkForUpdatesOnLaunch(): Promise<UpdateStatus> {
+  if (!app.isPackaged) {
+    pushStatus({
+      checking: false,
+      available: false,
+      message: "Updates disabled in development.",
+    });
+    return lastStatus;
+  }
+
   try {
     pushStatus({
       checking: true,
@@ -98,5 +109,6 @@ export async function checkForUpdatesOnLaunch(): Promise<UpdateStatus> {
 }
 
 export async function installUpdateNow(): Promise<void> {
+  if (!app.isPackaged) return;
   autoUpdater.quitAndInstall(false, true);
 }

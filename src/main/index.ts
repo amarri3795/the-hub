@@ -21,6 +21,15 @@ import {
   setSavePath,
 } from "./saves";
 import {
+  inspectSaveFile,
+  listSaveFiles,
+  readSaveBytes,
+  replaceSaveJsonField,
+  replaceSaveValues,
+  scanSaveValues,
+  writeSaveBytes,
+} from "./saveEditor";
+import {
   addCustomGame,
   createCollection,
   deleteCollection,
@@ -269,6 +278,74 @@ app.whenReady().then(() => {
     if (!isPremiumUnlocked()) return premiumDenied("Save backups");
     return deleteBackup(gameId, backupId);
   });
+  ipcMain.handle("hub:list-save-files", (_e, gameId: string) => {
+    if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
+    return listSaveFiles(gameId);
+  });
+  ipcMain.handle(
+    "hub:inspect-save-file",
+    (_e, gameId: string, relativePath: string) => {
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
+      return inspectSaveFile(gameId, relativePath);
+    },
+  );
+  ipcMain.handle(
+    "hub:read-save-bytes",
+    (_e, gameId: string, relativePath: string) => {
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
+      return readSaveBytes(gameId, relativePath);
+    },
+  );
+  ipcMain.handle(
+    "hub:write-save-bytes",
+    (_e, gameId: string, relativePath: string, base64: string) => {
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
+      return writeSaveBytes(gameId, relativePath, base64);
+    },
+  );
+  ipcMain.handle(
+    "hub:scan-save-values",
+    (
+      _e,
+      gameId: string,
+      relativePath: string,
+      value: number,
+      kinds?: Array<"i32le" | "u32le" | "i64le" | "f32le" | "text">,
+    ) => {
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
+      return scanSaveValues(gameId, relativePath, value, kinds);
+    },
+  );
+  ipcMain.handle(
+    "hub:replace-save-values",
+    (
+      _e,
+      gameId: string,
+      relativePath: string,
+      replacements: Array<{
+        offset: number;
+        kind: "i32le" | "u32le" | "i64le" | "f32le" | "text";
+        oldValue: number;
+        newValue: number;
+      }>,
+    ) => {
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
+      return replaceSaveValues(gameId, relativePath, replacements);
+    },
+  );
+  ipcMain.handle(
+    "hub:replace-save-json-field",
+    (
+      _e,
+      gameId: string,
+      relativePath: string,
+      fieldPath: string,
+      newValue: number,
+    ) => {
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
+      return replaceSaveJsonField(gameId, relativePath, fieldPath, newValue);
+    },
+  );
 
   ipcMain.handle("hub:prefs", () => readPrefs());
   ipcMain.handle("hub:toggle-favorite", (_e, gameId: string) =>

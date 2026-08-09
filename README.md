@@ -5,7 +5,7 @@ Unified game library for your PC.
 ## Features (v0.6)
 
 - Steam, Epic, Ubisoft, GOG, Xbox/Game Pass (best-effort), Minecraft
-- Launch, notes, save-folder linking
+- Launch, notes, save-folder linking (auto-find under Documents / AppData / LocalLow / install / Steam userdata)
 - Favorites, recently played, hide games, tags
 - Sort by name / recent / playtime / store
 - Grid density: compact / comfortable / big

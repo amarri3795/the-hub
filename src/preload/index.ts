@@ -26,14 +26,34 @@ const api = {
   openEpic: (): Promise<{ ok: true }> => ipcRenderer.invoke("hub:open-epic"),
   openUbisoft: (): Promise<{ ok: true }> =>
     ipcRenderer.invoke("hub:open-ubisoft"),
-  getExtras: (gameId: string, gameName: string): Promise<GameExtras> =>
-    ipcRenderer.invoke("hub:extras", gameId, gameName),
+  getExtras: (
+    gameId: string,
+    gameName: string,
+    installPath?: string | null,
+    steamAppId?: string | null,
+  ): Promise<GameExtras> =>
+    ipcRenderer.invoke("hub:extras", gameId, gameName, installPath, steamAppId),
   pickSavePath: (
     gameId: string,
   ): Promise<ActionResult & { path?: string }> =>
     ipcRenderer.invoke("hub:pick-save", gameId),
   setSavePath: (gameId: string, savePath: string): Promise<ActionResult> =>
     ipcRenderer.invoke("hub:set-save", gameId, savePath),
+  autoFindSave: (
+    gameId: string,
+    gameName: string,
+    installPath?: string | null,
+    steamAppId?: string | null,
+    force?: boolean,
+  ): Promise<ActionResult & { path?: string; guesses?: string[] }> =>
+    ipcRenderer.invoke(
+      "hub:auto-find-save",
+      gameId,
+      gameName,
+      installPath,
+      steamAppId,
+      force,
+    ),
   saveNotes: (gameId: string, notes: string): Promise<ActionResult> =>
     ipcRenderer.invoke("hub:save-notes", gameId, notes),
   createBackup: (gameId: string): Promise<ActionResult> =>

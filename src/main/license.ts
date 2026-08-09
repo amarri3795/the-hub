@@ -66,7 +66,13 @@ export function mintOwnerMasterKey(): string {
   return mintLicenseKey(OWNER_MASTER_PAYLOAD);
 }
 
+/** Dev preview: HUB_FORCE_FREE=1 ignores owner unlock and stored keys. */
+export function isForceFree(): boolean {
+  return process.env.HUB_FORCE_FREE === "1";
+}
+
 export function isOwnerMachine(): boolean {
+  if (isForceFree()) return false;
   if (process.env.HUB_OWNER === "1") return true;
   try {
     return userInfo().username.toLowerCase() === "amarri52";
@@ -76,6 +82,14 @@ export function isOwnerMachine(): boolean {
 }
 
 export function getPremiumStatus(): PremiumStatus {
+  if (isForceFree()) {
+    return {
+      unlocked: false,
+      source: "none",
+      message: "Free tier (preview — HUB_FORCE_FREE=1)",
+    };
+  }
+
   if (isOwnerMachine()) {
     return {
       unlocked: true,

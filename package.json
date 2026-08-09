@@ -1,12 +1,14 @@
 {
   "name": "the-hub",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "The Hub — unified game library for your PC",
   "author": "The Hub",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:free": "cmd /c \"set HUB_FORCE_FREE=1&& electron-vite dev\"",
+    "render-icon": "node scripts/render-icon.mjs",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "start": "electron-vite preview",
@@ -20,6 +22,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

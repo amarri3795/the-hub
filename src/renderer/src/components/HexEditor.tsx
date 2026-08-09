@@ -495,7 +495,21 @@ export function HexEditor({
             >
               Save{dirtyCount > 0 ? ` (${dirtyCount})` : ""}
             </button>
-            <button className="btn" type="button" onClick={onClose}>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => {
+                if (
+                  dirtyCount > 0 &&
+                  !window.confirm(
+                    "Discard unsaved hex edits? Your changes will be lost.",
+                  )
+                ) {
+                  return;
+                }
+                onClose();
+              }}
+            >
               Close
             </button>
           </div>

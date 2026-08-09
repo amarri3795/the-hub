@@ -46,7 +46,8 @@
       {
         "provider": "github",
         "owner": "amarri3795",
-        "repo": "the-hub"
+        "repo": "the-hub",
+        "releaseType": "release"
       }
     ],
     "win": {

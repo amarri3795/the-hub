@@ -28,6 +28,9 @@ const DEFAULT_PREFS: LibraryPrefs = {
   accentColor: "#3d8bfd",
   closeToTray: true,
   launchOptions: {},
+  premiumKey: undefined,
+  premiumUnlocked: false,
+  premiumUnlockedAt: undefined,
 };
 
 function prefsPath(): string {
@@ -53,6 +56,9 @@ export function readPrefs(): LibraryPrefs {
       accentColor: raw.accentColor ?? "#3d8bfd",
       closeToTray: raw.closeToTray ?? true,
       launchOptions: raw.launchOptions ?? {},
+      premiumKey: raw.premiumKey,
+      premiumUnlocked: !!raw.premiumUnlocked,
+      premiumUnlockedAt: raw.premiumUnlockedAt,
     };
   } catch {
     return structuredClone(DEFAULT_PREFS);
@@ -61,6 +67,27 @@ export function readPrefs(): LibraryPrefs {
 
 function writePrefs(prefs: LibraryPrefs): void {
   writeFileSync(prefsPath(), JSON.stringify(prefs, null, 2), "utf8");
+}
+
+export function writePremiumUnlock(
+  unlock: {
+    premiumKey: string;
+    premiumUnlocked: true;
+    premiumUnlockedAt: number;
+  } | null,
+): LibraryPrefs {
+  const prefs = readPrefs();
+  if (!unlock) {
+    delete prefs.premiumKey;
+    prefs.premiumUnlocked = false;
+    delete prefs.premiumUnlockedAt;
+  } else {
+    prefs.premiumKey = unlock.premiumKey;
+    prefs.premiumUnlocked = true;
+    prefs.premiumUnlockedAt = unlock.premiumUnlockedAt;
+  }
+  writePrefs(prefs);
+  return prefs;
 }
 
 export function updateSettings(

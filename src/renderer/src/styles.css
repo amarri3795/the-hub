@@ -159,11 +159,6 @@ body {
   letter-spacing: -0.04em;
 }
 
-.tagline {
-  margin: 0.15rem 0 0;
-  color: var(--muted);
-}
-
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -325,6 +320,116 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.license-group {
+  flex: 1 1 100%;
+  min-width: 280px;
+}
+
+.license-status {
+  margin: 0;
+}
+
+.license-input {
+  min-width: min(320px, 70vw);
+  font-family: ui-monospace, Consolas, monospace;
+  letter-spacing: 0.02em;
+}
+
+.premium-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 1px solid transparent;
+}
+
+.premium-lock {
+  margin-left: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(4, 8, 14, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.premium-modal {
+  width: min(440px, 100%);
+  padding: 1.35rem 1.4rem 1.2rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(61, 139, 253, 0.35);
+  background:
+    linear-gradient(165deg, rgba(61, 139, 253, 0.12), transparent 42%),
+    rgba(14, 20, 30, 0.96);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.premium-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.premium-modal h2 {
+  margin: 0 0 0.55rem;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.premium-modal p {
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}
+
+.premium-bullets {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+  color: var(--ink);
+  display: grid;
+  gap: 0.3rem;
+}
+
+.premium-bullets li {
+  color: var(--muted);
+}
+
+.premium-price {
+  margin: 0 0 1rem !important;
+}
+
+.premium-price .price {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+}
+
+.modal-actions {
+  margin-bottom: 0.65rem;
 }
 
 .accent-row {
@@ -449,8 +554,7 @@ body {
   min-height: 2.6em;
 }
 
-.app.big-picture .brand-block,
-.app.big-picture .tagline {
+.app.big-picture .brand-block {
   display: none;
 }
 

@@ -162,28 +162,77 @@ function scoreNameMatch(query: string, candidate: string): number {
   return -1;
 }
 
+/**
+ * Steam storesearch often returns 0 hits for folder-style titles that use
+ * hyphens (common for Ubisoft installs, e.g. "Anno 117 - Pax Romana").
+ * Build a small set of alternate queries that still match the same game.
+ */
+function steamSearchTerms(gameName: string): string[] {
+  const terms: string[] = [];
+  const push = (value: string) => {
+    const cleaned = value.replace(/\s+/g, " ").trim();
+    if (cleaned && !terms.includes(cleaned)) terms.push(cleaned);
+  };
+
+  push(gameName);
+  // Replace dashes with spaces — "Anno 117 - Pax Romana" → works; hyphenated form does not.
+  push(gameName.replace(/[-–—]/g, " "));
+  // Drop parenthetical edition tags: "Game (Deluxe Edition)"
+  push(gameName.replace(/\([^)]*\)/g, " ").replace(/[-–—]/g, " "));
+  // Primary title before a spaced dash subtitle (Ubisoft/Epic folder style).
+  const dashSplit = gameName.split(/\s[-–—]\s+/);
+  if (dashSplit.length > 1) push(dashSplit[0]);
+  // Primary title before a colon subtitle.
+  const colonSplit = gameName.split(/\s*:\s*/);
+  if (colonSplit.length > 1) push(colonSplit[0]);
+
+  return terms;
+}
+
+async function steamStoreSearch(
+  term: string,
+): Promise<StoreSearchResponse["items"]> {
+  const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(term)}&l=english&cc=US`;
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) return [];
+  const data = (await res.json()) as StoreSearchResponse;
+  return data.items ?? [];
+}
+
 /** Best-effort cover for Epic/Ubisoft/other titles via Steam store search. */
 export async function resolveCoverViaSteamSearch(
   gameName: string,
 ): Promise<string[]> {
   try {
-    const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(gameName)}&l=english&cc=US`;
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as StoreSearchResponse;
-    const ranked = (data.items ?? [])
-      .filter((it) => typeof it.id === "number")
-      .map((it) => ({
-        id: it.id as number,
-        name: it.name ?? "",
-        tiny_image: it.tiny_image,
-        score: scoreNameMatch(gameName, it.name ?? ""),
-      }))
-      .filter((it) => it.score >= 40)
-      .sort((a, b) => b.score - a.score);
-    const item = ranked[0];
+    let item:
+      | {
+          id: number;
+          name: string;
+          tiny_image?: string;
+          score: number;
+        }
+      | undefined;
+
+    for (const term of steamSearchTerms(gameName)) {
+      const items = await steamStoreSearch(term);
+      const ranked = items
+        .filter((it) => typeof it.id === "number")
+        .map((it) => ({
+          id: it.id as number,
+          name: it.name ?? "",
+          tiny_image: it.tiny_image,
+          // Score against the original library name, not the rewritten query.
+          score: scoreNameMatch(gameName, it.name ?? ""),
+        }))
+        .filter((it) => it.score >= 40)
+        .sort((a, b) => b.score - a.score);
+      if (ranked[0]) {
+        item = ranked[0];
+        break;
+      }
+    }
     if (!item) return [];
 
     // Prefer library portrait art for the matched appId; landscape only as fallback.

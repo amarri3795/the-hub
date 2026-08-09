@@ -5,6 +5,7 @@ import type {
   HubGame,
   LaunchOptions,
   LibraryPrefs,
+  PremiumStatus,
   SortBy,
   StoreId,
   UpdateStatus,
@@ -16,6 +17,14 @@ type StoreFilter = "all" | StoreId;
 type ViewFilter = "all" | "favorites" | "recent" | "hidden" | `collection:${string}`;
 type CoverFit = "cover" | "contain";
 
+type PremiumModalState = {
+  feature: string;
+  bullets: string[];
+} | null;
+
+const DEFAULT_ACCENT = "#3d8bfd";
+const PREMIUM_PRICE = "$14.99";
+
 const ACCENTS = [
   { id: "blue", color: "#3d8bfd", label: "Blue" },
   { id: "teal", color: "#2dd4bf", label: "Teal" },
@@ -23,6 +32,14 @@ const ACCENTS = [
   { id: "rose", color: "#fb7185", label: "Rose" },
   { id: "lime", color: "#a3e635", label: "Lime" },
 ] as const;
+
+const PREMIUM_BULLETS = [
+  "Collections & Steam category import",
+  "Save backups (create & restore)",
+  "Big Picture mode",
+  "Per-game launch options",
+  "Accent themes beyond default",
+];
 
 function formatPlaytime(minutes?: number): string | null {
   if (!minutes || minutes <= 0) return null;
@@ -170,11 +187,17 @@ export default function App() {
   const [extrasLoading, setExtrasLoading] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [premium, setPremium] = useState<PremiumStatus | null>(null);
+  const [licenseDraft, setLicenseDraft] = useState("");
+  const [premiumModal, setPremiumModal] = useState<PremiumModalState>(null);
+  const [activating, setActivating] = useState(false);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
+  const licenseInputRef = useRef<HTMLInputElement | null>(null);
 
   const sortBy = prefs?.sortBy ?? "name";
   const density = prefs?.gridDensity ?? "comfortable";
-  const accent = prefs?.accentColor ?? "#3d8bfd";
+  const accent = prefs?.accentColor ?? DEFAULT_ACCENT;
+  const isPremium = !!premium?.unlocked;
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -203,6 +226,7 @@ export default function App() {
   useEffect(() => {
     void refresh();
     void window.hub.getUpdateStatus().then(setUpdateStatus);
+    void window.hub.getPremiumStatus().then(setPremium);
     const offStatus = window.hub.onUpdateStatus(setUpdateStatus);
     const offCheck = window.hub.onRequestUpdateCheck(() => {
       void window.hub.checkUpdates().then(setUpdateStatus);
@@ -212,6 +236,37 @@ export default function App() {
       offCheck();
     };
   }, [refresh]);
+
+  function openPremiumModal(feature: string, bullets: string[] = PREMIUM_BULLETS) {
+    setPremiumModal({ feature, bullets });
+  }
+
+  function requirePremium(feature: string, bullets?: string[]): boolean {
+    if (isPremium) return true;
+    openPremiumModal(feature, bullets ?? PREMIUM_BULLETS);
+    return false;
+  }
+
+  function focusLicenseEntry() {
+    setPremiumModal(null);
+    setSettingsOpen(true);
+    window.setTimeout(() => licenseInputRef.current?.focus(), 50);
+  }
+
+  async function activateKey() {
+    setActivating(true);
+    try {
+      const res = await window.hub.activateLicense(licenseDraft);
+      setPremium(res.status);
+      setStatus(res.ok ? res.message ?? "Premium activated." : res.error);
+      if (res.ok) {
+        setLicenseDraft("");
+        setPremiumModal(null);
+      }
+    } finally {
+      setActivating(false);
+    }
+  }
 
   useEffect(() => {
     document.documentElement.style.setProperty("--accent", accent);
@@ -437,9 +492,6 @@ export default function App() {
           <header className="topbar">
             <div className="brand-block">
               <p className="brand">The Hub</p>
-              <p className="tagline">
-                Steam · Epic · Ubisoft · GOG · Xbox · Minecraft
-              </p>
             </div>
             <div className="toolbar">
               <input
@@ -511,7 +563,14 @@ export default function App() {
               <button
                 className="btn ghost"
                 type="button"
-                onClick={() => setBigPicture((v) => !v)}
+                onClick={() => {
+                  if (bigPicture) {
+                    setBigPicture(false);
+                    return;
+                  }
+                  if (!requirePremium("Big Picture mode")) return;
+                  setBigPicture(true);
+                }}
               >
                 {bigPicture ? "Exit Big Picture" : "Big Picture"}
               </button>
@@ -541,7 +600,9 @@ export default function App() {
           {settingsOpen ? (
             <section className="settings-bar">
               <div className="settings-group">
-                <span className="settings-label">Accent</span>
+                <span className="settings-label">
+                  Accent{isPremium ? "" : " (Premium for extras)"}
+                </span>
                 <div className="accent-row">
                   {ACCENTS.map((a) => (
                     <button
@@ -549,17 +610,36 @@ export default function App() {
                       type="button"
                       className={`accent-swatch ${accent === a.color ? "active" : ""}`}
                       style={{ background: a.color }}
-                      title={a.label}
-                      onClick={() => void patchSettings({ accentColor: a.color })}
+                      title={
+                        a.color === DEFAULT_ACCENT || isPremium
+                          ? a.label
+                          : `${a.label} · Premium`
+                      }
+                      onClick={() => {
+                        if (
+                          a.color !== DEFAULT_ACCENT &&
+                          !requirePremium("Accent themes")
+                        ) {
+                          return;
+                        }
+                        void patchSettings({ accentColor: a.color });
+                      }}
                     />
                   ))}
                   <input
                     type="color"
                     className="accent-picker"
                     value={accent}
-                    onChange={(e) =>
-                      void patchSettings({ accentColor: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const color = e.target.value;
+                      if (
+                        color.toLowerCase() !== DEFAULT_ACCENT &&
+                        !requirePremium("Accent themes")
+                      ) {
+                        return;
+                      }
+                      void patchSettings({ accentColor: color });
+                    }}
                     title="Custom accent"
                   />
                 </div>
@@ -577,7 +657,8 @@ export default function App() {
               <button
                 className="btn"
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  if (!requirePremium("Steam category import")) return;
                   void (async () => {
                     const next = await window.hub.importSteamCategories();
                     setPrefs(next);
@@ -585,8 +666,8 @@ export default function App() {
                       `Imported Steam categories into ${next.collections.length} collection(s).`,
                     );
                     await refresh();
-                  })()
-                }
+                  })();
+                }}
               >
                 Import Steam categories
               </button>
@@ -612,7 +693,8 @@ export default function App() {
                     className="btn primary"
                     type="button"
                     disabled={!collectionName.trim()}
-                    onClick={() =>
+                    onClick={() => {
+                      if (!requirePremium("Collections")) return;
                       void (async () => {
                         const next = await window.hub.createCollection(
                           collectionName.trim(),
@@ -620,12 +702,67 @@ export default function App() {
                         setPrefs(next);
                         setCollectionName("");
                         setStatus("Collection created.");
-                      })()
-                    }
+                      })();
+                    }}
                   >
                     Create
                   </button>
                 </div>
+              </div>
+              <div className="settings-group license-group">
+                <span className="settings-label">
+                  License / Premium
+                  {isPremium ? (
+                    <span className="premium-badge">Premium</span>
+                  ) : null}
+                </span>
+                <p className="muted small license-status">
+                  {premium?.message ?? "Checking…"}
+                  {premium?.source === "owner"
+                    ? " · developer unlock"
+                    : premium?.keyPreview
+                      ? ` · key …${premium.keyPreview}`
+                      : ""}
+                </p>
+                {!isPremium || premium?.source === "license" ? (
+                  <div className="row">
+                    <input
+                      ref={licenseInputRef}
+                      className="search license-input"
+                      value={licenseDraft}
+                      onChange={(e) => setLicenseDraft(e.target.value)}
+                      placeholder="HUB-XXXX-XXXX-XXXX-XXXX"
+                      spellCheck={false}
+                    />
+                    <button
+                      className="btn primary"
+                      type="button"
+                      disabled={!licenseDraft.trim() || activating}
+                      onClick={() => void activateKey()}
+                    >
+                      Activate
+                    </button>
+                    {premium?.source === "license" ? (
+                      <button
+                        className="btn ghost"
+                        type="button"
+                        onClick={() =>
+                          void (async () => {
+                            const res = await window.hub.deactivateLicense();
+                            setPremium(res.status);
+                            setStatus(res.message ?? "Deactivated.");
+                          })()
+                        }
+                      >
+                        Deactivate
+                      </button>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="muted small">
+                    Owner Premium is always on for this machine.
+                  </p>
+                )}
               </div>
             </section>
           ) : null}
@@ -636,6 +773,7 @@ export default function App() {
                 ? "Scanning libraries…"
                 : `${filtered.length} game${filtered.length === 1 ? "" : "s"}`}
             </span>
+            {isPremium ? <span className="premium-badge">Premium</span> : null}
             {steamPath ? <span className="path">Steam</span> : null}
             {epicPath ? <span className="path">Epic</span> : null}
             {ubisoftPath ? <span className="path">Ubisoft</span> : null}
@@ -851,11 +989,17 @@ export default function App() {
                 </section>
 
                 <section className="side-section">
-                  <h3>Collections</h3>
+                  <h3>
+                    Collections{" "}
+                    {!isPremium ? (
+                      <span className="premium-lock">Premium</span>
+                    ) : null}
+                  </h3>
                   {(prefs?.collections ?? []).length === 0 ? (
                     <p className="muted small">
-                      Create a collection in Settings, or import Steam
-                      categories.
+                      {isPremium
+                        ? "Create a collection in Settings, or import Steam categories."
+                        : "Collections are a Premium feature — create playlists and import Steam categories."}
                     </p>
                   ) : (
                     <div className="collection-checks">
@@ -866,7 +1010,8 @@ export default function App() {
                             <input
                               type="checkbox"
                               checked={on}
-                              onChange={() =>
+                              onChange={() => {
+                                if (!requirePremium("Collections")) return;
                                 void runAction(async () => {
                                   await window.hub.toggleGameInCollection(
                                     c.id,
@@ -878,14 +1023,15 @@ export default function App() {
                                       ? `Removed from ${c.name}`
                                       : `Added to ${c.name}`,
                                   };
-                                })
-                              }
+                                });
+                              }}
                             />
                             {c.name}
                             <button
                               type="button"
                               className="linkish"
-                              onClick={() =>
+                              onClick={() => {
+                                if (!requirePremium("Collections")) return;
                                 void (async () => {
                                   const next = await window.hub.deleteCollection(
                                     c.id,
@@ -895,8 +1041,8 @@ export default function App() {
                                     setViewFilter("all");
                                   }
                                   await loadExtras(selected);
-                                })()
-                              }
+                                })();
+                              }}
                             >
                               Delete
                             </button>
@@ -905,10 +1051,24 @@ export default function App() {
                       })}
                     </div>
                   )}
+                  {!isPremium ? (
+                    <button
+                      className="btn ghost wide"
+                      type="button"
+                      onClick={() => openPremiumModal("Collections")}
+                    >
+                      Unlock collections
+                    </button>
+                  ) : null}
                 </section>
 
                 <section className="side-section">
-                  <h3>Launch options</h3>
+                  <h3>
+                    Launch options{" "}
+                    {!isPremium ? (
+                      <span className="premium-lock">Premium</span>
+                    ) : null}
+                  </h3>
                   <label className="field">
                     <span>Arguments</span>
                     <input
@@ -917,6 +1077,10 @@ export default function App() {
                         setLaunchDraft((d) => ({ ...d, args: e.target.value }))
                       }
                       placeholder="-windowed -novid"
+                      disabled={!isPremium}
+                      onFocus={() => {
+                        if (!isPremium) openPremiumModal("Launch options");
+                      }}
                     />
                   </label>
                   <label className="field">
@@ -927,33 +1091,37 @@ export default function App() {
                         setLaunchDraft((d) => ({ ...d, cwd: e.target.value }))
                       }
                       placeholder="Leave blank for default"
+                      disabled={!isPremium}
                     />
                   </label>
                   <label className="check-row">
                     <input
                       type="checkbox"
                       checked={!!launchDraft.runAsAdmin}
-                      onChange={(e) =>
+                      disabled={!isPremium}
+                      onChange={(e) => {
+                        if (!requirePremium("Launch options")) return;
                         setLaunchDraft((d) => ({
                           ...d,
                           runAsAdmin: e.target.checked,
-                        }))
-                      }
+                        }));
+                      }}
                     />
                     Run as administrator (custom / Xbox exe)
                   </label>
                   <button
                     className="btn"
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      if (!requirePremium("Launch options")) return;
                       void runAction(async () => {
                         await window.hub.setLaunchOptions(
                           selected.id,
                           launchDraft,
                         );
                         return { ok: true, message: "Launch options saved." };
-                      })
-                    }
+                      });
+                    }}
                   >
                     Save launch options
                   </button>
@@ -979,9 +1147,12 @@ export default function App() {
                     <button
                       className="btn primary"
                       type="button"
-                      onClick={() =>
-                        void runAction(() => window.hub.createBackup(selected.id))
-                      }
+                      onClick={() => {
+                        if (!requirePremium("Save backups")) return;
+                        void runAction(() =>
+                          window.hub.createBackup(selected.id),
+                        );
+                      }}
                     >
                       Backup now
                     </button>
@@ -1008,9 +1179,18 @@ export default function App() {
                 </section>
 
                 <section className="side-section">
-                  <h3>Backups</h3>
+                  <h3>
+                    Backups{" "}
+                    {!isPremium ? (
+                      <span className="premium-lock">Premium</span>
+                    ) : null}
+                  </h3>
                   {extras.backups.length === 0 ? (
-                    <p className="muted small">No backups yet.</p>
+                    <p className="muted small">
+                      {isPremium
+                        ? "No backups yet."
+                        : "Create and restore save backups with Premium. Linking a save folder stays free."}
+                    </p>
                   ) : (
                     <ul className="backup-list">
                       {extras.backups.map((b) => (
@@ -1020,22 +1200,24 @@ export default function App() {
                             <button
                               className="btn"
                               type="button"
-                              onClick={() =>
+                              onClick={() => {
+                                if (!requirePremium("Save backups")) return;
                                 void runAction(() =>
                                   window.hub.restoreBackup(selected.id, b.id),
-                                )
-                              }
+                                );
+                              }}
                             >
                               Restore
                             </button>
                             <button
                               className="btn ghost"
                               type="button"
-                              onClick={() =>
+                              onClick={() => {
+                                if (!requirePremium("Save backups")) return;
                                 void runAction(() =>
                                   window.hub.deleteBackup(selected.id, b.id),
-                                )
-                              }
+                                );
+                              }}
                             >
                               Delete
                             </button>
@@ -1072,6 +1254,56 @@ export default function App() {
           </aside>
         ) : null}
       </div>
+
+      {premiumModal ? (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setPremiumModal(null)}
+        >
+          <div
+            className="premium-modal"
+            role="dialog"
+            aria-labelledby="premium-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="premium-kicker">Premium</p>
+            <h2 id="premium-title">{premiumModal.feature} is a Premium feature</h2>
+            <p className="muted">
+              One-time purchase unlocks Premium forever on this PC. Free tier
+              still covers scan, launch, search, favorites, and more.
+            </p>
+            <ul className="premium-bullets">
+              {premiumModal.bullets.map((b) => (
+                <li key={b}>{b}</li>
+              ))}
+            </ul>
+            <p className="premium-price">
+              <span className="price">{PREMIUM_PRICE}</span>
+              <span className="muted"> one-time</span>
+            </p>
+            <div className="row modal-actions">
+              <button
+                className="btn primary"
+                type="button"
+                onClick={focusLicenseEntry}
+              >
+                Enter license key
+              </button>
+              <button
+                className="btn ghost"
+                type="button"
+                onClick={() => setPremiumModal(null)}
+              >
+                Not now
+              </button>
+            </div>
+            <p className="muted small">
+              Have a key? Paste it under Settings → License / Premium.
+            </p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

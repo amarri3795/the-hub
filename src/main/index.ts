@@ -45,6 +45,14 @@ import {
 import { setupTray, shouldCloseToTray } from "./tray";
 import { readSteamCategories } from "./steamCategories";
 import { findSteamPath } from "./steam";
+import {
+  activateLicense,
+  deactivateLicense,
+  getPremiumStatus,
+  isDefaultAccent,
+  isPremiumUnlocked,
+  premiumDenied,
+} from "./license";
 import type { HubGame, LaunchOptions } from "../shared/types";
 
 const execFileAsync = promisify(execFile);
@@ -249,13 +257,18 @@ app.whenReady().then(() => {
   ipcMain.handle("hub:save-notes", (_e, gameId: string, notes: string) =>
     saveNotes(gameId, notes),
   );
-  ipcMain.handle("hub:backup", (_e, gameId: string) => createBackup(gameId));
-  ipcMain.handle("hub:restore", (_e, gameId: string, backupId: string) =>
-    restoreBackup(gameId, backupId),
-  );
-  ipcMain.handle("hub:delete-backup", (_e, gameId: string, backupId: string) =>
-    deleteBackup(gameId, backupId),
-  );
+  ipcMain.handle("hub:backup", (_e, gameId: string) => {
+    if (!isPremiumUnlocked()) return premiumDenied("Save backups");
+    return createBackup(gameId);
+  });
+  ipcMain.handle("hub:restore", (_e, gameId: string, backupId: string) => {
+    if (!isPremiumUnlocked()) return premiumDenied("Save backups");
+    return restoreBackup(gameId, backupId);
+  });
+  ipcMain.handle("hub:delete-backup", (_e, gameId: string, backupId: string) => {
+    if (!isPremiumUnlocked()) return premiumDenied("Save backups");
+    return deleteBackup(gameId, backupId);
+  });
 
   ipcMain.handle("hub:prefs", () => readPrefs());
   ipcMain.handle("hub:toggle-favorite", (_e, gameId: string) =>
@@ -271,28 +284,50 @@ app.whenReady().then(() => {
   ipcMain.handle("hub:remove-custom", (_e, gameId: string) =>
     removeCustomGame(gameId),
   );
-  ipcMain.handle("hub:update-settings", (_e, patch) => updateSettings(patch));
-  ipcMain.handle("hub:set-launch-options", (_e, gameId: string, options) =>
-    setLaunchOptions(gameId, options),
-  );
-  ipcMain.handle("hub:create-collection", (_e, name: string) =>
-    createCollection(name),
-  );
-  ipcMain.handle("hub:rename-collection", (_e, id: string, name: string) =>
-    renameCollection(id, name),
-  );
-  ipcMain.handle("hub:delete-collection", (_e, id: string) =>
-    deleteCollection(id),
-  );
+  ipcMain.handle("hub:update-settings", (_e, patch) => {
+    if (
+      patch?.accentColor &&
+      !isDefaultAccent(String(patch.accentColor)) &&
+      !isPremiumUnlocked()
+    ) {
+      return readPrefs();
+    }
+    return updateSettings(patch);
+  });
+  ipcMain.handle("hub:set-launch-options", (_e, gameId: string, options) => {
+    if (!isPremiumUnlocked()) return readPrefs();
+    return setLaunchOptions(gameId, options);
+  });
+  ipcMain.handle("hub:create-collection", (_e, name: string) => {
+    if (!isPremiumUnlocked()) return readPrefs();
+    return createCollection(name);
+  });
+  ipcMain.handle("hub:rename-collection", (_e, id: string, name: string) => {
+    if (!isPremiumUnlocked()) return readPrefs();
+    return renameCollection(id, name);
+  });
+  ipcMain.handle("hub:delete-collection", (_e, id: string) => {
+    if (!isPremiumUnlocked()) return readPrefs();
+    return deleteCollection(id);
+  });
   ipcMain.handle(
     "hub:toggle-collection-game",
-    (_e, collectionId: string, gameId: string) =>
-      toggleGameInCollection(collectionId, gameId),
+    (_e, collectionId: string, gameId: string) => {
+      if (!isPremiumUnlocked()) return readPrefs();
+      return toggleGameInCollection(collectionId, gameId);
+    },
   );
   ipcMain.handle("hub:import-steam-categories", () => {
+    if (!isPremiumUnlocked()) return readPrefs();
     const cats = readSteamCategories(findSteamPath());
     return mergeSteamCategories(cats);
   });
+
+  ipcMain.handle("hub:premium-status", () => getPremiumStatus());
+  ipcMain.handle("hub:activate-license", (_e, key: string) =>
+    activateLicense(typeof key === "string" ? key : ""),
+  );
+  ipcMain.handle("hub:deactivate-license", () => deactivateLicense());
 
   ipcMain.handle("hub:update-status", () => getUpdateStatus());
   ipcMain.handle("hub:check-updates", () => checkForUpdatesOnLaunch());

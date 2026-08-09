@@ -6,6 +6,7 @@ import type {
   HubGame,
   LaunchOptions,
   LibraryPrefs,
+  PremiumStatus,
   ScanResult,
   SortBy,
   UpdateStatus,
@@ -73,6 +74,14 @@ const api = {
     ipcRenderer.invoke("hub:toggle-collection-game", collectionId, gameId),
   importSteamCategories: (): Promise<LibraryPrefs> =>
     ipcRenderer.invoke("hub:import-steam-categories"),
+  getPremiumStatus: (): Promise<PremiumStatus> =>
+    ipcRenderer.invoke("hub:premium-status"),
+  activateLicense: (
+    key: string,
+  ): Promise<ActionResult & { status: PremiumStatus }> =>
+    ipcRenderer.invoke("hub:activate-license", key),
+  deactivateLicense: (): Promise<ActionResult & { status: PremiumStatus }> =>
+    ipcRenderer.invoke("hub:deactivate-license"),
   getUpdateStatus: (): Promise<UpdateStatus> =>
     ipcRenderer.invoke("hub:update-status"),
   checkUpdates: (): Promise<UpdateStatus> =>

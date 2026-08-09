@@ -79,6 +79,20 @@ export type LibraryPrefs = {
   accentColor: string;
   closeToTray: boolean;
   launchOptions: Record<string, LaunchOptions>;
+  /** Activated license key (normalized). */
+  premiumKey?: string;
+  premiumUnlocked?: boolean;
+  premiumUnlockedAt?: number;
+};
+
+export type PremiumSource = "none" | "license" | "owner";
+
+export type PremiumStatus = {
+  unlocked: boolean;
+  source: PremiumSource;
+  keyPreview?: string;
+  unlockedAt?: number;
+  message: string;
 };
 
 export type UpdateStatus = {

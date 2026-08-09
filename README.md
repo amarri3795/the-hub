@@ -2,7 +2,7 @@
 
 Unified game library for your PC.
 
-## Features (v0.5)
+## Features (v0.6)
 
 - Steam, Epic, Ubisoft, GOG, Xbox/Game Pass (best-effort), Minecraft
 - Launch, notes, save-folder linking

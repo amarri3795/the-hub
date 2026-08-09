@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#b7d9ff"/>
+      <stop offset="35%" stop-color="#5aa4ff"/>
+      <stop offset="100%" stop-color="#2f7ff0"/>
+    </radialGradient>
+    <filter id="coreGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- outer glow wash -->
+  <circle cx="128" cy="128" r="70" fill="#3d8bfd" opacity="0.22" filter="url(#coreGlow)"/>
+
+  <circle cx="128" cy="128" r="118" stroke="#7eb6ff" stroke-width="10" opacity="0.95" filter="url(#softGlow)"/>
+  <circle cx="128" cy="128" r="38" fill="url(#core)" filter="url(#coreGlow)"/>
+  <circle cx="128" cy="128" r="14" fill="#eaf4ff" opacity="0.95"/>
+
+  <circle cx="128" cy="42" r="16" fill="#f2f6fb"/>
+  <circle cx="204" cy="84" r="16" fill="#f2f6fb"/>
+  <circle cx="204" cy="172" r="16" fill="#f2f6fb"/>
+  <circle cx="128" cy="214" r="16" fill="#f2f6fb"/>
+  <circle cx="52" cy="172" r="16" fill="#f2f6fb"/>
+  <circle cx="52" cy="84" r="16" fill="#f2f6fb"/>
+  <path
+    d="M128 62V94M178 98L152 114M178 158L152 142M128 162V194M78 158L104 142M78 98L104 114"
+    stroke="#eef4fb"
+    stroke-width="8"
+    stroke-linecap="round"
+  />
+</svg>

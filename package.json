@@ -1,16 +1,20 @@
 {
   "name": "the-hub",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "private": true,
   "description": "The Hub — unified game library for your PC",
+  "author": "The Hub",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "start": "electron-vite preview"
+    "start": "electron-vite preview",
+    "dist": "npm run build && electron-builder --win",
+    "dist:portable": "npm run build && electron-builder --win portable"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -19,8 +23,38 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^35.0.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^3.0.0",
     "typescript": "^5.7.0",
     "vite": "^6.0.0"
+  },
+  "build": {
+    "appId": "com.thehub.app",
+    "productName": "The Hub",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "resources/icon.png"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "amarri3795",
+        "repo": "the-hub"
+      }
+    ],
+    "win": {
+      "icon": "resources/icon.png",
+      "target": [
+        "portable"
+      ],
+      "artifactName": "TheHub-${version}-portable.${ext}"
+    }
+  },
+  "allowScripts": {
+    "electron@35.7.5": true,
+    "esbuild@0.25.12": true
   }
 }

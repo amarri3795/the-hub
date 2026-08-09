@@ -1,13 +1,98 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { ScanResult } from "../shared/types";
+import type {
+  ActionResult,
+  GameExtras,
+  GridDensity,
+  HubGame,
+  LaunchOptions,
+  LibraryPrefs,
+  ScanResult,
+  SortBy,
+  UpdateStatus,
+} from "../shared/types";
 
 const api = {
   scanLibrary: (): Promise<ScanResult> => ipcRenderer.invoke("hub:scan"),
-  launchGame: (
-    appId: string,
-  ): Promise<{ ok: true } | { ok: false; error: string }> =>
-    ipcRenderer.invoke("hub:launch", appId),
+  launchGame: (game: HubGame): Promise<ActionResult> =>
+    ipcRenderer.invoke("hub:launch", game),
   openSteam: (): Promise<{ ok: true }> => ipcRenderer.invoke("hub:open-steam"),
+  openEpic: (): Promise<{ ok: true }> => ipcRenderer.invoke("hub:open-epic"),
+  openUbisoft: (): Promise<{ ok: true }> =>
+    ipcRenderer.invoke("hub:open-ubisoft"),
+  getExtras: (gameId: string, gameName: string): Promise<GameExtras> =>
+    ipcRenderer.invoke("hub:extras", gameId, gameName),
+  pickSavePath: (
+    gameId: string,
+  ): Promise<ActionResult & { path?: string }> =>
+    ipcRenderer.invoke("hub:pick-save", gameId),
+  setSavePath: (gameId: string, savePath: string): Promise<ActionResult> =>
+    ipcRenderer.invoke("hub:set-save", gameId, savePath),
+  saveNotes: (gameId: string, notes: string): Promise<ActionResult> =>
+    ipcRenderer.invoke("hub:save-notes", gameId, notes),
+  createBackup: (gameId: string): Promise<ActionResult> =>
+    ipcRenderer.invoke("hub:backup", gameId),
+  restoreBackup: (gameId: string, backupId: string): Promise<ActionResult> =>
+    ipcRenderer.invoke("hub:restore", gameId, backupId),
+  deleteBackup: (gameId: string, backupId: string): Promise<ActionResult> =>
+    ipcRenderer.invoke("hub:delete-backup", gameId, backupId),
+  getPrefs: (): Promise<LibraryPrefs> => ipcRenderer.invoke("hub:prefs"),
+  toggleFavorite: (gameId: string): Promise<LibraryPrefs> =>
+    ipcRenderer.invoke("hub:toggle-favorite", gameId),
+  toggleHidden: (gameId: string): Promise<LibraryPrefs> =>
+    ipcRenderer.invoke("hub:toggle-hidden", gameId),
+  setTags: (gameId: string, tags: string[]): Promise<LibraryPrefs> =>
+    ipcRenderer.invoke("hub:set-tags", gameId, tags),
+  addCustomGame: (): Promise<
+    ActionResult & { prefs?: LibraryPrefs; game?: HubGame }
+  > => ipcRenderer.invoke("hub:add-custom"),
+  removeCustomGame: (gameId: string): Promise<LibraryPrefs> =>
+    ipcRenderer.invoke("hub:remove-custom", gameId),
+  updateSettings: (
+    patch: Partial<{
+      sortBy: SortBy;
+      gridDensity: GridDensity;
+      accentColor: string;
+      closeToTray: boolean;
+    }>,
+  ): Promise<LibraryPrefs> => ipcRenderer.invoke("hub:update-settings", patch),
+  setLaunchOptions: (
+    gameId: string,
+    options: LaunchOptions,
+  ): Promise<LibraryPrefs> =>
+    ipcRenderer.invoke("hub:set-launch-options", gameId, options),
+  createCollection: (name: string): Promise<LibraryPrefs> =>
+    ipcRenderer.invoke("hub:create-collection", name),
+  renameCollection: (id: string, name: string): Promise<LibraryPrefs> =>
+    ipcRenderer.invoke("hub:rename-collection", id, name),
+  deleteCollection: (id: string): Promise<LibraryPrefs> =>
+    ipcRenderer.invoke("hub:delete-collection", id),
+  toggleGameInCollection: (
+    collectionId: string,
+    gameId: string,
+  ): Promise<LibraryPrefs> =>
+    ipcRenderer.invoke("hub:toggle-collection-game", collectionId, gameId),
+  importSteamCategories: (): Promise<LibraryPrefs> =>
+    ipcRenderer.invoke("hub:import-steam-categories"),
+  getUpdateStatus: (): Promise<UpdateStatus> =>
+    ipcRenderer.invoke("hub:update-status"),
+  checkUpdates: (): Promise<UpdateStatus> =>
+    ipcRenderer.invoke("hub:check-updates"),
+  installUpdate: (): Promise<void> => ipcRenderer.invoke("hub:install-update"),
+  onUpdateStatus: (cb: (status: UpdateStatus) => void): (() => void) => {
+    const listener = (_: Electron.IpcRendererEvent, status: UpdateStatus) =>
+      cb(status);
+    ipcRenderer.on("hub:update-status", listener);
+    return () => ipcRenderer.removeListener("hub:update-status", listener);
+  },
+  onRequestUpdateCheck: (cb: () => void): (() => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("hub:request-update-check", listener);
+    return () =>
+      ipcRenderer.removeListener("hub:request-update-check", listener);
+  },
+  windowMinimize: (): Promise<void> => ipcRenderer.invoke("hub:window-minimize"),
+  windowMaximize: (): Promise<void> => ipcRenderer.invoke("hub:window-maximize"),
+  windowClose: (): Promise<void> => ipcRenderer.invoke("hub:window-close"),
 };
 
 contextBridge.exposeInMainWorld("hub", api);

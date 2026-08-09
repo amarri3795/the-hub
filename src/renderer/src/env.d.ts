@@ -1,13 +1,17 @@
 export {};
 
+declare module "*.svg" {
+  const src: string;
+  export default src;
+}
+
+declare module "*.png" {
+  const src: string;
+  export default src;
+}
+
 declare global {
   interface Window {
-    hub: {
-      scanLibrary: () => Promise<import("../../shared/types").ScanResult>;
-      launchGame: (
-        appId: string,
-      ) => Promise<{ ok: true } | { ok: false; error: string }>;
-      openSteam: () => Promise<{ ok: true }>;
-    };
+    hub: import("../../preload/index").HubApi;
   }
 }

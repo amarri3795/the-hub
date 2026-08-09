@@ -8,6 +8,7 @@ import {
 import { join, relative, resolve, sep } from "path";
 import type {
   ActionResult,
+  SaveBytesResult,
   SaveFileEntry,
   SaveJsonField,
   SaveReplaceResult,
@@ -461,6 +462,7 @@ export function scanSaveValues(
         offset,
         kind,
         value: decoded,
+        byteLength: needle.length,
         label: `0x${offset.toString(16).toUpperCase()} · ${kind}`,
       });
       if (hits.length >= MAX_HITS) break;
@@ -616,5 +618,68 @@ export function replaceSaveJsonField(
     ok: true,
     replaced: 1,
     message: `Updated ${fieldPath} (backup created first).`,
+  };
+}
+
+export function readSaveBytes(
+  gameId: string,
+  relativePath: string,
+): SaveBytesResult {
+  const read = readSaveBuffer(gameId, relativePath);
+  if (!read.ok || !read.buffer) return read;
+  return {
+    ok: true,
+    base64: read.buffer.toString("base64"),
+    size: read.buffer.length,
+  };
+}
+
+export function writeSaveBytes(
+  gameId: string,
+  relativePath: string,
+  base64: string,
+): ActionResult {
+  if (typeof base64 !== "string" || !base64) {
+    return { ok: false, error: "Nothing to write." };
+  }
+
+  let next: Buffer;
+  try {
+    next = Buffer.from(base64, "base64");
+  } catch {
+    return { ok: false, error: "Invalid hex editor payload." };
+  }
+  if (next.length === 0) {
+    return { ok: false, error: "Refusing to write an empty file." };
+  }
+  if (next.length > MAX_FILE_BYTES) {
+    return {
+      ok: false,
+      error: `File is too large to save in Hub (max ${formatBytes(MAX_FILE_BYTES)}).`,
+    };
+  }
+
+  const linked = linkedRoot(gameId);
+  if (!linked.ok || !linked.root) return linked;
+  const file = resolveSaveFile(linked.root, relativePath);
+  if (!file.ok || !file.absolute) return file;
+
+  const backup = createBackup(gameId);
+  if (!backup.ok) {
+    return {
+      ok: false,
+      error: `Could not create a safety backup before editing: ${backup.error}`,
+    };
+  }
+
+  try {
+    writeFileSync(file.absolute, next);
+  } catch (err) {
+    return { ok: false, error: `Write failed: ${String(err)}` };
+  }
+
+  return {
+    ok: true,
+    message: `Saved ${relativePath} (${formatBytes(next.length)}; backup created first).`,
   };
 }

@@ -106,7 +106,7 @@ export type ActionResult =
   | { ok: true; message?: string }
   | { ok: false; error: string };
 
-/** Encodings searched/replaced by the save value editor. */
+/** Encodings searched/replaced by the save hex editor helpers. */
 export type SaveValueKind = "i32le" | "u32le" | "i64le" | "f32le" | "text";
 
 export type SaveFileEntry = {
@@ -121,6 +121,12 @@ export type SaveValueHit = {
   kind: SaveValueKind;
   value: number;
   label: string;
+  byteLength: number;
+};
+
+export type SaveBytesResult = ActionResult & {
+  base64?: string;
+  size?: number;
 };
 
 export type SaveJsonField = {

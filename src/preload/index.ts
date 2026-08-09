@@ -7,6 +7,7 @@ import type {
   LaunchOptions,
   LibraryPrefs,
   PremiumStatus,
+  SaveBytesResult,
   SaveFileEntry,
   SaveJsonField,
   SaveReplaceResult,
@@ -57,6 +58,17 @@ const api = {
       truncatedJson?: boolean;
     }
   > => ipcRenderer.invoke("hub:inspect-save-file", gameId, relativePath),
+  readSaveBytes: (
+    gameId: string,
+    relativePath: string,
+  ): Promise<SaveBytesResult> =>
+    ipcRenderer.invoke("hub:read-save-bytes", gameId, relativePath),
+  writeSaveBytes: (
+    gameId: string,
+    relativePath: string,
+    base64: string,
+  ): Promise<ActionResult> =>
+    ipcRenderer.invoke("hub:write-save-bytes", gameId, relativePath, base64),
   scanSaveValues: (
     gameId: string,
     relativePath: string,

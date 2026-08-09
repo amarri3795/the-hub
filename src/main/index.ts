@@ -23,9 +23,11 @@ import {
 import {
   inspectSaveFile,
   listSaveFiles,
+  readSaveBytes,
   replaceSaveJsonField,
   replaceSaveValues,
   scanSaveValues,
+  writeSaveBytes,
 } from "./saveEditor";
 import {
   addCustomGame,
@@ -277,14 +279,28 @@ app.whenReady().then(() => {
     return deleteBackup(gameId, backupId);
   });
   ipcMain.handle("hub:list-save-files", (_e, gameId: string) => {
-    if (!isPremiumUnlocked()) return premiumDenied("Save value editor");
+    if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
     return listSaveFiles(gameId);
   });
   ipcMain.handle(
     "hub:inspect-save-file",
     (_e, gameId: string, relativePath: string) => {
-      if (!isPremiumUnlocked()) return premiumDenied("Save value editor");
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
       return inspectSaveFile(gameId, relativePath);
+    },
+  );
+  ipcMain.handle(
+    "hub:read-save-bytes",
+    (_e, gameId: string, relativePath: string) => {
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
+      return readSaveBytes(gameId, relativePath);
+    },
+  );
+  ipcMain.handle(
+    "hub:write-save-bytes",
+    (_e, gameId: string, relativePath: string, base64: string) => {
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
+      return writeSaveBytes(gameId, relativePath, base64);
     },
   );
   ipcMain.handle(
@@ -296,7 +312,7 @@ app.whenReady().then(() => {
       value: number,
       kinds?: Array<"i32le" | "u32le" | "i64le" | "f32le" | "text">,
     ) => {
-      if (!isPremiumUnlocked()) return premiumDenied("Save value editor");
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
       return scanSaveValues(gameId, relativePath, value, kinds);
     },
   );
@@ -313,7 +329,7 @@ app.whenReady().then(() => {
         newValue: number;
       }>,
     ) => {
-      if (!isPremiumUnlocked()) return premiumDenied("Save value editor");
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
       return replaceSaveValues(gameId, relativePath, replacements);
     },
   );
@@ -326,7 +342,7 @@ app.whenReady().then(() => {
       fieldPath: string,
       newValue: number,
     ) => {
-      if (!isPremiumUnlocked()) return premiumDenied("Save value editor");
+      if (!isPremiumUnlocked()) return premiumDenied("Save hex editor");
       return replaceSaveJsonField(gameId, relativePath, fieldPath, newValue);
     },
   );

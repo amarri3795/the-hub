@@ -825,6 +825,255 @@ body {
   gap: 0.35rem;
 }
 
+.hex-backdrop {
+  z-index: 50;
+  place-items: stretch;
+  padding: 1rem;
+}
+
+.hex-modal {
+  width: min(1200px, 100%);
+  height: min(860px, 100%);
+  margin: auto;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem 0.9rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(61, 139, 253, 0.35);
+  background:
+    linear-gradient(165deg, rgba(61, 139, 253, 0.1), transparent 36%),
+    rgba(12, 17, 26, 0.98);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.hex-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
+.hex-head h2 {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 1.15rem;
+  word-break: break-all;
+}
+
+.hex-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 0.85rem;
+}
+
+.hex-main {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.45rem;
+}
+
+.hex-toolbar {
+  align-items: end;
+}
+
+.hex-goto {
+  width: 9rem;
+}
+
+.hex-meta {
+  margin-left: auto;
+}
+
+.hex-view {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: #0a1018;
+  outline: none;
+}
+
+.hex-view:focus {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+
+.hex-col-head,
+.hex-row {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) 9.5rem;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0 0.55rem;
+  font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+  font-size: 0.78rem;
+}
+
+.hex-col-head {
+  height: 1.7rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.hex-scroller {
+  min-height: 0;
+  overflow: auto;
+}
+
+.hex-spacer {
+  position: relative;
+}
+
+.hex-window {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+}
+
+.hex-bytes {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(1.35rem, 1.6rem));
+  gap: 0.12rem;
+  justify-content: start;
+}
+
+.hex-ascii {
+  display: grid;
+  grid-template-columns: repeat(16, 0.55rem);
+  gap: 0;
+  justify-content: start;
+  letter-spacing: 0;
+}
+
+.hex-offset {
+  color: var(--muted);
+}
+
+.hex-byte,
+.ascii-byte {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  border-radius: 0.15rem;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.hex-byte.empty {
+  cursor: default;
+  opacity: 0.25;
+}
+
+.hex-byte.cursor,
+.ascii-byte.cursor {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.hex-byte.nibble {
+  outline: 1px solid #fff;
+}
+
+.hex-byte.dirty {
+  color: #f5a524;
+}
+
+.hex-byte.hit,
+.ascii-byte.hit {
+  background: rgba(61, 139, 253, 0.22);
+}
+
+.hex-byte.hit-sel,
+.ascii-byte.hit-sel {
+  background: rgba(163, 230, 53, 0.28);
+}
+
+.hex-byte.cursor.hit-sel,
+.hex-byte.cursor.hit,
+.ascii-byte.cursor.hit-sel,
+.ascii-byte.cursor.hit {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.hex-selection,
+.hex-status {
+  margin: 0;
+}
+
+.hex-tools {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: 0.55rem;
+  align-content: start;
+  border-left: 1px solid var(--line);
+  padding-left: 0.85rem;
+}
+
+.hex-tools h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.hex-hit-list {
+  max-height: 180px;
+}
+
+.hit-jump {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hit-jump:hover {
+  color: var(--accent);
+}
+
+.hex-json {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 980px) {
+  .hex-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .hex-tools {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+    padding-top: 0.75rem;
+  }
+
+  .hex-col-head,
+  .hex-row {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .hex-ascii {
+    display: none;
+  }
+}
+
 .notes {
   width: 100%;
   resize: vertical;

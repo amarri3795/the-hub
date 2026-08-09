@@ -20,7 +20,7 @@ Unlocks permanently after entering a valid license key (stored in local prefs):
 
 - Collections / playlists (create, assign, filter) + Steam category import
 - Save backups (create / restore / delete) — linking a save folder stays free
-- Save value editor for single-player games (browse linked saves, edit JSON numbers, find/replace binary values like money) — auto-backups before every write
+- Save hex editor for single-player games (browse linked saves, edit bytes, find/replace values like money, JSON field helpers) — auto-backups before every write
 - Big Picture mode
 - Per-game launch options (args, cwd, run as admin)
 - Accent themes beyond the default blue

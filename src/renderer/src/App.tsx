@@ -37,7 +37,7 @@ const ACCENTS = [
 const PREMIUM_BULLETS = [
   "Collections & Steam category import",
   "Save backups (create & restore)",
-  "Save value editor (money & stats)",
+  "Save hex editor (bytes + money/stats find)",
   "Big Picture mode",
   "Per-game launch options",
   "Accent themes beyond default",

@@ -758,6 +758,73 @@ body {
   font-size: 0.8rem;
 }
 
+.field.tight {
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.save-file-list,
+.save-hit-list,
+.json-field-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.save-file {
+  width: 100%;
+  display: grid;
+  gap: 0.15rem;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+}
+
+.save-file:hover,
+.save-file.active {
+  border-color: var(--accent);
+}
+
+.save-file-name {
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+.save-editor-body {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.kind-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.7rem;
+}
+
+.kind-toggle,
+.save-hit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.json-field-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem;
+}
+
 .notes {
   width: 100%;
   resize: vertical;

@@ -134,15 +134,19 @@ function listBackups(gameId: string): BackupInfo[] {
     .sort((a, b) => (a!.id < b!.id ? 1 : -1)) as BackupInfo[];
 }
 
+export function getLinkedSavePath(gameId: string): string | null {
+  const map = readSaveMap();
+  return map[gameId]?.savePath ?? null;
+}
+
 export function getGameExtras(gameId: string, gameName: string): GameExtras {
   ensureDirs();
-  const map = readSaveMap();
   const notesFile = notesPath(gameId);
   const notes = existsSync(notesFile) ? readFileSync(notesFile, "utf8") : "";
   const prefs = readPrefs();
 
   return {
-    savePath: map[gameId]?.savePath ?? null,
+    savePath: getLinkedSavePath(gameId),
     notes,
     backups: listBackups(gameId),
     guessedSavePaths: guessSavePaths(gameName),

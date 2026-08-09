@@ -11,6 +11,7 @@ import type {
   UpdateStatus,
 } from "../../shared/types";
 import { TitleBar } from "./components/TitleBar";
+import { SaveEditorPanel } from "./components/SaveEditorPanel";
 import hubMark from "./assets/hub-mark.svg";
 
 type StoreFilter = "all" | StoreId;
@@ -36,6 +37,7 @@ const ACCENTS = [
 const PREMIUM_BULLETS = [
   "Collections & Steam category import",
   "Save backups (create & restore)",
+  "Save value editor (money & stats)",
   "Big Picture mode",
   "Per-game launch options",
   "Accent themes beyond default",
@@ -1177,6 +1179,14 @@ export default function App() {
                     </div>
                   ) : null}
                 </section>
+
+                <SaveEditorPanel
+                  gameId={selected.id}
+                  savePath={extras.savePath}
+                  isPremium={isPremium}
+                  requirePremium={requirePremium}
+                  runAction={runAction}
+                />
 
                 <section className="side-section">
                   <h3>

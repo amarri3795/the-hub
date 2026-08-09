@@ -105,3 +105,35 @@ export type UpdateStatus = {
 export type ActionResult =
   | { ok: true; message?: string }
   | { ok: false; error: string };
+
+/** Encodings searched/replaced by the save value editor. */
+export type SaveValueKind = "i32le" | "u32le" | "i64le" | "f32le" | "text";
+
+export type SaveFileEntry = {
+  relativePath: string;
+  size: number;
+  sizeLabel: string;
+  modifiedAt: number;
+};
+
+export type SaveValueHit = {
+  offset: number;
+  kind: SaveValueKind;
+  value: number;
+  label: string;
+};
+
+export type SaveJsonField = {
+  path: string;
+  value: number;
+};
+
+export type SaveScanResult = ActionResult & {
+  hits?: SaveValueHit[];
+  fileSize?: number;
+  truncated?: boolean;
+};
+
+export type SaveReplaceResult = ActionResult & {
+  replaced?: number;
+};

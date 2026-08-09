@@ -7,6 +7,11 @@ import type {
   LaunchOptions,
   LibraryPrefs,
   PremiumStatus,
+  SaveFileEntry,
+  SaveJsonField,
+  SaveReplaceResult,
+  SaveScanResult,
+  SaveValueKind,
   ScanResult,
   SortBy,
   UpdateStatus,
@@ -36,6 +41,58 @@ const api = {
     ipcRenderer.invoke("hub:restore", gameId, backupId),
   deleteBackup: (gameId: string, backupId: string): Promise<ActionResult> =>
     ipcRenderer.invoke("hub:delete-backup", gameId, backupId),
+  listSaveFiles: (
+    gameId: string,
+  ): Promise<ActionResult & { files?: SaveFileEntry[]; truncated?: boolean }> =>
+    ipcRenderer.invoke("hub:list-save-files", gameId),
+  inspectSaveFile: (
+    gameId: string,
+    relativePath: string,
+  ): Promise<
+    ActionResult & {
+      kind?: "json" | "text" | "binary";
+      jsonFields?: SaveJsonField[];
+      textPreview?: string;
+      fileSize?: number;
+      truncatedJson?: boolean;
+    }
+  > => ipcRenderer.invoke("hub:inspect-save-file", gameId, relativePath),
+  scanSaveValues: (
+    gameId: string,
+    relativePath: string,
+    value: number,
+    kinds?: SaveValueKind[],
+  ): Promise<SaveScanResult> =>
+    ipcRenderer.invoke("hub:scan-save-values", gameId, relativePath, value, kinds),
+  replaceSaveValues: (
+    gameId: string,
+    relativePath: string,
+    replacements: Array<{
+      offset: number;
+      kind: SaveValueKind;
+      oldValue: number;
+      newValue: number;
+    }>,
+  ): Promise<SaveReplaceResult> =>
+    ipcRenderer.invoke(
+      "hub:replace-save-values",
+      gameId,
+      relativePath,
+      replacements,
+    ),
+  replaceSaveJsonField: (
+    gameId: string,
+    relativePath: string,
+    fieldPath: string,
+    newValue: number,
+  ): Promise<SaveReplaceResult> =>
+    ipcRenderer.invoke(
+      "hub:replace-save-json-field",
+      gameId,
+      relativePath,
+      fieldPath,
+      newValue,
+    ),
   getPrefs: (): Promise<LibraryPrefs> => ipcRenderer.invoke("hub:prefs"),
   toggleFavorite: (gameId: string): Promise<LibraryPrefs> =>
     ipcRenderer.invoke("hub:toggle-favorite", gameId),

@@ -1,0 +1,195 @@
+:root {
+  --bg: #0b0f14;
+  --bg-elev: #121821;
+  --ink: #e8eef6;
+  --muted: #8b9bb0;
+  --line: rgba(232, 238, 246, 0.1);
+  --accent: #3d8bfd;
+  --accent-ink: #061018;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(900px 500px at 10% -10%, rgba(61, 139, 253, 0.18), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(80, 200, 120, 0.08), transparent 50%),
+    var(--bg);
+}
+
+.app {
+  min-height: 100vh;
+  padding: 1.25rem 1.5rem 2rem;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.brand {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.tagline {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.search {
+  width: min(280px, 70vw);
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--ink);
+  border-radius: 0.4rem;
+  padding: 0.65rem 0.8rem;
+}
+
+.btn {
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--ink);
+  border-radius: 0.4rem;
+  padding: 0.65rem 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn:hover {
+  border-color: rgba(232, 238, 246, 0.28);
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink);
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.status {
+  color: #9ad4ff;
+}
+
+.banner {
+  background: rgba(255, 120, 80, 0.12);
+  border: 1px solid rgba(255, 120, 80, 0.35);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.banner p {
+  margin: 0.2rem 0;
+}
+
+.empty {
+  margin-top: 4rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty h1 {
+  color: var(--ink);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cover {
+  width: 100%;
+  aspect-ratio: 600 / 900;
+  object-fit: cover;
+  display: block;
+  background: #1a2230;
+}
+
+.cover.fallback {
+  display: grid;
+  place-items: center;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.card-body {
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.card-body h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  min-height: 2.4em;
+}
+
+.store {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

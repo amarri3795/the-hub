@@ -51,6 +51,12 @@ function formatPlaytime(minutes?: number): string | null {
   return m ? `${h}h ${m}m` : `${h}h`;
 }
 
+function steamAppIdFor(game: HubGame): string | null {
+  return game.store === "steam" && game.launchId && /^\d+$/.test(game.launchId)
+    ? game.launchId
+    : null;
+}
+
 function isLikelyLandscapeCoverUrl(url: string): boolean {
   const lower = url.toLowerCase();
   if (
@@ -277,7 +283,32 @@ export default function App() {
   const loadExtras = useCallback(async (game: HubGame) => {
     setExtrasLoading(true);
     try {
-      const data = await window.hub.getExtras(game.id, game.name);
+      const steamAppId = steamAppIdFor(game);
+      let data = await window.hub.getExtras(
+        game.id,
+        game.name,
+        game.installPath,
+        steamAppId,
+      );
+      // Quietly auto-link a high-confidence save folder when none is linked yet.
+      if (!data.savePath) {
+        const found = await window.hub.autoFindSave(
+          game.id,
+          game.name,
+          game.installPath,
+          steamAppId,
+          false,
+        );
+        if (found.ok) {
+          data = await window.hub.getExtras(
+            game.id,
+            game.name,
+            game.installPath,
+            steamAppId,
+          );
+          setStatus(found.message ?? "Save folder auto-linked.");
+        }
+      }
       setExtras(data);
       setNotes(data.notes);
       setTagDraft(data.tags.join(", "));
@@ -1134,9 +1165,26 @@ export default function App() {
                   <p className="muted small">
                     {extras.savePath
                       ? extras.savePath
-                      : "Not linked yet — pick a folder or use a guess."}
+                      : "Not linked yet — Auto-find, pick a folder, or use a guess."}
                   </p>
                   <div className="row">
+                    <button
+                      className="btn primary"
+                      type="button"
+                      onClick={() =>
+                        void runAction(() =>
+                          window.hub.autoFindSave(
+                            selected.id,
+                            selected.name,
+                            selected.installPath,
+                            steamAppIdFor(selected),
+                            true,
+                          ),
+                        )
+                      }
+                    >
+                      Auto-find
+                    </button>
                     <button
                       className="btn"
                       type="button"
@@ -1147,7 +1195,7 @@ export default function App() {
                       Pick folder
                     </button>
                     <button
-                      className="btn primary"
+                      className="btn"
                       type="button"
                       onClick={() => {
                         if (!requirePremium("Save backups")) return;

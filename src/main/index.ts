@@ -12,6 +12,7 @@ import { execFile, spawn } from "child_process";
 import { promisify } from "util";
 import { scanAllLibraries } from "./library";
 import {
+  autoFindSavePath,
   createBackup,
   deleteBackup,
   getGameExtras,
@@ -256,12 +257,33 @@ app.whenReady().then(() => {
     return { ok: true as const };
   });
 
-  ipcMain.handle("hub:extras", (_e, gameId: string, gameName: string) =>
-    getGameExtras(gameId, gameName),
+  ipcMain.handle(
+    "hub:extras",
+    (
+      _e,
+      gameId: string,
+      gameName: string,
+      installPath?: string | null,
+      steamAppId?: string | null,
+    ) => getGameExtras(gameId, gameName, installPath, steamAppId),
   );
   ipcMain.handle("hub:pick-save", (_e, gameId: string) => pickSavePath(gameId));
   ipcMain.handle("hub:set-save", (_e, gameId: string, savePath: string) =>
     setSavePath(gameId, savePath),
+  );
+  ipcMain.handle(
+    "hub:auto-find-save",
+    (
+      _e,
+      gameId: string,
+      gameName: string,
+      installPath?: string | null,
+      steamAppId?: string | null,
+      force?: boolean,
+    ) =>
+      autoFindSavePath(gameId, gameName, installPath, steamAppId, {
+        force: !!force,
+      }),
   );
   ipcMain.handle("hub:save-notes", (_e, gameId: string, notes: string) =>
     saveNotes(gameId, notes),

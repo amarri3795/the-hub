@@ -55,11 +55,15 @@ const api = {
       steamAppId,
       force,
     ),
-  pickFiveMVehicleSource: (): Promise<
-    ActionResult & { path?: string; kind?: "zip" | "folder" }
-  > => ipcRenderer.invoke("hub:fivem-pick-source"),
-  convertFiveMToOiv: (sourcePath?: string): Promise<FiveMConvertResult> =>
-    ipcRenderer.invoke("hub:fivem-convert-oiv", sourcePath),
+  pickFiveMVehicleSource: (
+    kind?: "zip" | "folder",
+  ): Promise<ActionResult & { path?: string; kind?: "zip" | "folder" }> =>
+    ipcRenderer.invoke("hub:fivem-pick-source", kind),
+  convertFiveMToOiv: (
+    sourcePath?: string,
+    sourceKind?: "zip" | "folder",
+  ): Promise<FiveMConvertResult> =>
+    ipcRenderer.invoke("hub:fivem-convert-oiv", sourcePath, sourceKind),
   showInFolder: (targetPath: string): Promise<ActionResult> =>
     ipcRenderer.invoke("hub:show-in-folder", targetPath),
   saveNotes: (gameId: string, notes: string): Promise<ActionResult> =>

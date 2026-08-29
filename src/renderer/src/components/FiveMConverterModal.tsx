@@ -19,12 +19,22 @@ export function FiveMConverterModal({
 
   if (!open) return null;
 
-  async function runConvert() {
+  async function runConvert(kind: "zip" | "folder") {
     if (!requirePremium("FiveM → Story Mode converter")) return;
     setBusy(true);
     setResult(null);
     try {
-      const res = await window.hub.convertFiveMToOiv();
+      // 1) Pick SOURCE (zip or folder) — separate dialogs on Windows
+      const picked = await window.hub.pickFiveMVehicleSource(kind);
+      if (!picked.ok || !picked.path) {
+        setResult({
+          ok: false,
+          error: picked.ok ? "No file selected." : picked.error,
+        });
+        return;
+      }
+      // 2) Convert — then asks where to SAVE the .oiv output
+      const res = await window.hub.convertFiveMToOiv(picked.path, kind);
       setResult(res);
     } finally {
       setBusy(false);
@@ -51,12 +61,13 @@ export function FiveMConverterModal({
         </p>
         <h2 id="fivem-title">FiveM → Story Mode car converter</h2>
         <p className="muted">
-          Drop a FiveM vehicle zip or folder (<code>data/</code> +{" "}
-          <code>stream/</code>). Hub builds an OpenIV <code>.oiv</code> package
-          for GTA V Story Mode.
+          Pick a FiveM vehicle <strong>.zip</strong> or unpacked{" "}
+          <strong>folder</strong> (<code>data/</code> + <code>stream/</code>).
+          Hub then asks where to save the OpenIV <code>.oiv</code> (that second
+          dialog is output-only).
         </p>
         <ol className="fivem-steps">
-          <li>Pick the FiveM car zip/folder</li>
+          <li>Pick the FiveM car zip or folder</li>
           <li>Save the generated <code>.oiv</code> (default: Downloads)</li>
           <li>
             OpenIV → Tools → Package Installer → install into the{" "}
@@ -69,9 +80,17 @@ export function FiveMConverterModal({
             className="btn primary"
             type="button"
             disabled={busy}
-            onClick={() => void runConvert()}
+            onClick={() => void runConvert("zip")}
           >
-            {busy ? "Converting…" : "Convert FiveM car to Story Mode"}
+            {busy ? "Working…" : "Convert from .zip"}
+          </button>
+          <button
+            className="btn"
+            type="button"
+            disabled={busy}
+            onClick={() => void runConvert("folder")}
+          >
+            Convert from folder
           </button>
           <button
             className="btn ghost"

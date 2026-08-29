@@ -494,14 +494,26 @@ function stageAndBuildOiv(
   }
 }
 
-export async function pickFiveMVehicleSource(): Promise<
-  ActionResult & { path?: string; kind?: "zip" | "folder" }
-> {
+export async function pickFiveMVehicleSource(
+  kind: "zip" | "folder" = "zip",
+): Promise<ActionResult & { path?: string; kind?: "zip" | "folder" }> {
+  // Windows cannot combine openFile + openDirectory in one dialog.
+  if (kind === "folder") {
+    const result = await dialog.showOpenDialog({
+      title: "Select a FiveM vehicle folder (contains data/ and stream/)",
+      properties: ["openDirectory"],
+    });
+    if (result.canceled || !result.filePaths[0]) {
+      return { ok: false, error: "Cancelled." };
+    }
+    return { ok: true, path: result.filePaths[0], kind: "folder" };
+  }
+
   const result = await dialog.showOpenDialog({
-    title: "Select a FiveM vehicle zip or folder",
-    properties: ["openFile", "openDirectory"],
+    title: "Select a FiveM vehicle .zip",
+    properties: ["openFile"],
     filters: [
-      { name: "FiveM vehicle pack", extensions: ["zip"] },
+      { name: "FiveM vehicle zip", extensions: ["zip"] },
       { name: "All files", extensions: ["*"] },
     ],
   });
@@ -509,34 +521,25 @@ export async function pickFiveMVehicleSource(): Promise<
     return { ok: false, error: "Cancelled." };
   }
   const path = result.filePaths[0];
-  let st;
-  try {
-    st = statSync(path);
-  } catch {
-    return { ok: false, error: "Could not read that path." };
+  if (extname(path).toLowerCase() !== ".zip") {
+    return { ok: false, error: "Please pick a .zip file (or use Pick folder)." };
   }
-  if (st.isDirectory()) return { ok: true, path, kind: "folder" };
-  if (st.isFile() && extname(path).toLowerCase() === ".zip") {
-    return { ok: true, path, kind: "zip" };
-  }
-  return {
-    ok: false,
-    error: "Pick a FiveM vehicle .zip or a folder containing data/ and stream/.",
-  };
+  return { ok: true, path, kind: "zip" };
 }
 
 export async function convertFiveMVehicleToOiv(
   sourcePath?: string,
+  sourceKind?: "zip" | "folder",
 ): Promise<FiveMConvertResult> {
   let path = sourcePath;
-  let kind: "zip" | "folder" | undefined;
+  let kind: "zip" | "folder" | undefined = sourceKind;
 
   if (!path) {
-    const picked = await pickFiveMVehicleSource();
+    const picked = await pickFiveMVehicleSource(sourceKind ?? "zip");
     if (!picked.ok || !picked.path || !picked.kind) return picked;
     path = picked.path;
     kind = picked.kind;
-  } else {
+  } else if (!kind) {
     try {
       const st = statSync(path);
       kind = st.isDirectory()
@@ -589,7 +592,7 @@ export async function convertFiveMVehicleToOiv(
     const defaultName = `${sanitizePackName(spawnGuess)}_install.oiv`;
     const downloads = app.getPath("downloads");
     const save = await dialog.showSaveDialog({
-      title: "Save OpenIV package",
+      title: "Save the OpenIV .oiv package (output)",
       defaultPath: join(downloads, defaultName),
       filters: [{ name: "OpenIV package", extensions: ["oiv"] }],
     });

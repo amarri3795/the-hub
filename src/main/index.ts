@@ -290,14 +290,22 @@ app.whenReady().then(() => {
         force: !!force,
       }),
   );
-  ipcMain.handle("hub:fivem-pick-source", () => {
-    if (!isPremiumUnlocked()) return premiumDenied("FiveM → Story Mode converter");
-    return pickFiveMVehicleSource();
-  });
-  ipcMain.handle("hub:fivem-convert-oiv", (_e, sourcePath?: string) => {
-    if (!isPremiumUnlocked()) return premiumDenied("FiveM → Story Mode converter");
-    return convertFiveMVehicleToOiv(sourcePath);
-  });
+  ipcMain.handle(
+    "hub:fivem-pick-source",
+    (_e, kind?: "zip" | "folder") => {
+      if (!isPremiumUnlocked())
+        return premiumDenied("FiveM → Story Mode converter");
+      return pickFiveMVehicleSource(kind ?? "zip");
+    },
+  );
+  ipcMain.handle(
+    "hub:fivem-convert-oiv",
+    (_e, sourcePath?: string, sourceKind?: "zip" | "folder") => {
+      if (!isPremiumUnlocked())
+        return premiumDenied("FiveM → Story Mode converter");
+      return convertFiveMVehicleToOiv(sourcePath, sourceKind);
+    },
+  );
   ipcMain.handle("hub:show-in-folder", (_e, targetPath: string) =>
     openPathInFolder(targetPath),
   );

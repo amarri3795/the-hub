@@ -147,13 +147,117 @@ function sanitizePackName(raw: string): string {
   return `veh${randomUUID().replace(/-/g, "").slice(0, 8)}`;
 }
 
+/** Stable kit id in 20000–60000 so we never collide with vanilla kit 0. */
+function modkitIdForPack(packName: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < packName.length; i++) {
+    h ^= packName.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return 20000 + (h >>> 0) % 40001;
+}
+
+/** Strip non-ASCII (OpenIV/package UI mangled arrows as ``). */
+function asciiSafe(text: string): string {
+  return text.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
+}
+
 function escapeXml(text: string): string {
-  return text
+  return asciiSafe(text)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
+}
+
+/**
+ * Rewrite carcols + carvariations so kit id 0 / 0_default_modkit become a
+ * unique high id + kit name for this pack.
+ */
+function remapModkits(
+  carcolsXml: string | null,
+  carvariationsXml: string | null,
+  packName: string,
+): { carcols: string | null; carvariations: string | null; kitId: number; kitName: string } {
+  const kitId = modkitIdForPack(packName);
+  const kitName = `${kitId}_${packName}_modkit`;
+  const renamed = new Map<string, string>();
+
+  const needsRemap = (name: string, id: number): boolean =>
+    id === 0 ||
+    !name ||
+    /^0(_|$)/i.test(name) ||
+    /default_modkit/i.test(name);
+
+  const remapCols = (xml: string): string =>
+    xml.replace(/<Kits>([\s\S]*?)<\/Kits>/gi, (_m, body: string) => {
+      const items = body.replace(/<Item>([\s\S]*?)<\/Item>/gi, (_im, item: string) => {
+        const nameMatch = /<kitName>\s*([^<]*?)\s*<\/kitName>/i.exec(item);
+        const idMatch = /<id\s+value="(\d+)"\s*\/>/i.exec(item);
+        const name = nameMatch?.[1]?.trim() ?? "";
+        const id = idMatch ? Number(idMatch[1]) : -1;
+        if (!needsRemap(name, id)) return `<Item>${item}</Item>`;
+        if (name) renamed.set(name, kitName);
+        renamed.set("0_default_modkit", kitName);
+        let fixed = item;
+        if (nameMatch) {
+          fixed = fixed.replace(
+            /<kitName>\s*[^<]*?\s*<\/kitName>/i,
+            `<kitName>${kitName}</kitName>`,
+          );
+        } else {
+          fixed = `<kitName>${kitName}</kitName>\n${fixed}`;
+        }
+        if (idMatch) {
+          fixed = fixed.replace(
+            /<id\s+value="\d+"\s*\/>/i,
+            `<id value="${kitId}" />`,
+          );
+        } else {
+          fixed = `${fixed}\n<id value="${kitId}" />`;
+        }
+        return `<Item>${fixed}</Item>`;
+      });
+      return `<Kits>${items}</Kits>`;
+    });
+
+  const remapVars = (xml: string): string => {
+    let out = xml.replace(/<kitName>\s*([^<]*?)\s*<\/kitName>/gi, (_m, raw: string) => {
+      const n = raw.trim();
+      if (renamed.has(n)) return `<kitName>${renamed.get(n)}</kitName>`;
+      if (needsRemap(n, n === "0" ? 0 : -1)) {
+        return `<kitName>${kitName}</kitName>`;
+      }
+      return `<kitName>${n}</kitName>`;
+    });
+    // Common FiveM form: <kits><Item>0_default_modkit</Item></kits>
+    out = out.replace(
+      /(<kits>\s*)([\s\S]*?)(<\/kits>)/gi,
+      (_m, open: string, body: string, close: string) => {
+        const fixed = body.replace(
+          /<Item>\s*([^<]*?)\s*<\/Item>/gi,
+          (_im, raw: string) => {
+            const n = raw.trim();
+            if (renamed.has(n)) return `<Item>${renamed.get(n)}</Item>`;
+            if (needsRemap(n, n === "0" ? 0 : -1)) {
+              return `<Item>${kitName}</Item>`;
+            }
+            return `<Item>${n}</Item>`;
+          },
+        );
+        return `${open}${fixed}${close}`;
+      },
+    );
+    return out;
+  };
+
+  return {
+    carcols: carcolsXml ? remapCols(carcolsXml) : null,
+    carvariations: carvariationsXml ? remapVars(carvariationsXml) : null,
+    kitId,
+    kitName,
+  };
 }
 
 function parseSpawnName(vehiclesMetaXml: string): string | null {
@@ -227,7 +331,7 @@ function buildSetup2Xml(packName: string): string {
   <startupScript />
   <scriptCallstackSize value="0" />
   <type>EXTRACONTENT_COMPAT_PACK</type>
-  <order value="25" />
+  <order value="71" />
   <minorOrder value="0" />
   <isLevelPack value="false" />
   <dependencyPackHash />
@@ -240,7 +344,8 @@ function buildSetup2Xml(packName: string): string {
 function buildContentXml(
   packName: string,
   metas: MetaSpec[],
-  vehiclesRpfRel: string,
+  /** Path AFTER %PLATFORM% (no leading x64/) — %PLATFORM% already expands to x64. */
+  vehiclesRpfUnderPlatform: string,
 ): string {
   const device = `dlc_${packName}`;
   const dataItems = metas
@@ -255,8 +360,9 @@ function buildContentXml(
     )
     .join("\n");
 
+  const rpfLogical = vehiclesRpfUnderPlatform.replace(/\\/g, "/");
   const rpfItem = `    <Item>
-      <filename>${device}:/%PLATFORM%/${vehiclesRpfRel.replace(/\\/g, "/")}</filename>
+      <filename>${device}:/%PLATFORM%/${rpfLogical}</filename>
       <fileType>RPF_FILE</fileType>
       <overlay value="false" />
       <disabled value="true" />
@@ -269,7 +375,7 @@ function buildContentXml(
         `        <Item>${device}:/${m.destInDlc.replace(/\\/g, "/")}</Item>`,
     )
     .join("\n");
-  const enableRpf = `        <Item>${device}:/%PLATFORM%/${vehiclesRpfRel.replace(/\\/g, "/")}</Item>`;
+  const enableRpf = `        <Item>${device}:/%PLATFORM%/${rpfLogical}</Item>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <CDataFileMgr__ContentsOfDataFileXml>
@@ -321,15 +427,15 @@ function buildAssemblyXml(opts: {
     )
     .join("\n");
 
-  const description = `Converted from FiveM for GTA V Story Mode by The Hub.
+  const description = asciiSafe(`Converted from FiveM for GTA V Story Mode by The Hub.
 
 Spawn name: ${opts.spawnName}
 Pack: ${opts.packName}
 
-Install with OpenIV → Tools → Package Installer
+Install with OpenIV -> Tools -> Package Installer
 Install into your GTA V "mods" folder.
 
-Then spawn with: ${opts.spawnName}`;
+Then spawn with: ${opts.spawnName}`);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <package version="2.2" id="${guid}" target="Five">
@@ -410,8 +516,10 @@ function stageAndBuildOiv(
   }
 
   const packName = sanitizePackName(spawnName);
-  const vehiclesRpfRel = `x64\\levels\\gta5\\vehicles\\${packName}_vehicles.rpf`;
-  const displayName = `${spawnName} (FiveM → Story Mode)`;
+  // Physical path inside dlc.rpf (has x64/). content.xml uses %PLATFORM%/ without x64/.
+  const vehiclesRpfPhysical = `x64\\levels\\gta5\\vehicles\\${packName}_vehicles.rpf`;
+  const vehiclesRpfUnderPlatform = `levels\\gta5\\vehicles\\${packName}_vehicles.rpf`;
+  const displayName = asciiSafe(`${spawnName} (FiveM -> Story Mode)`);
 
   const stage = mkdtempSync(join(tmpdir(), "hub-oiv-"));
   const contentDir = join(stage, "content");
@@ -421,10 +529,25 @@ function stageAndBuildOiv(
   ensureDir(streamOut);
 
   try {
+    const carcolsMeta = metas.find((m) => m.kind === "carcols");
+    const carvarsMeta = metas.find((m) => m.kind === "carvariations");
+    const remapped = remapModkits(
+      carcolsMeta ? readFileSync(carcolsMeta.absPath, "utf8") : null,
+      carvarsMeta ? readFileSync(carvarsMeta.absPath, "utf8") : null,
+      packName,
+    );
+
     const metaAdds: Array<{ source: string; dest: string }> = [];
     for (const meta of metas) {
       const relSource = `data\\${meta.fileName}`;
-      copyFileSync(meta.absPath, join(dataOut, meta.fileName));
+      const destFile = join(dataOut, meta.fileName);
+      if (meta.kind === "carcols" && remapped.carcols !== null) {
+        writeFileSync(destFile, remapped.carcols, "utf8");
+      } else if (meta.kind === "carvariations" && remapped.carvariations !== null) {
+        writeFileSync(destFile, remapped.carvariations, "utf8");
+      } else {
+        copyFileSync(meta.absPath, destFile);
+      }
       metaAdds.push({ source: relSource, dest: meta.destInDlc });
     }
 
@@ -446,7 +569,7 @@ function stageAndBuildOiv(
           fileType,
           destInDlc,
         })),
-        vehiclesRpfRel,
+        vehiclesRpfUnderPlatform,
       ),
       "utf8",
     );
@@ -458,7 +581,7 @@ function stageAndBuildOiv(
         displayName,
         metaAdds,
         streamAdds,
-        vehiclesRpfRel,
+        vehiclesRpfRel: vehiclesRpfPhysical,
       }),
       "utf8",
     );
@@ -487,7 +610,9 @@ function stageAndBuildOiv(
       outputPath,
       metaFiles: metas.map((m) => m.fileName),
       streamFiles: streamFiles.map((f) => basename(f)),
-      message: `Created ${basename(outputPath)}. Spawn name: ${spawnName}. Install with OpenIV → Tools → Package Installer (mods folder).`,
+      message: asciiSafe(
+        `Created ${basename(outputPath)}. Spawn name: ${spawnName}. Install with OpenIV -> Tools -> Package Installer (mods folder).`,
+      ),
     };
   } finally {
     rmSync(stage, { recursive: true, force: true });
@@ -525,6 +650,47 @@ export async function pickFiveMVehicleSource(
     return { ok: false, error: "Please pick a .zip file (or use Pick folder)." };
   }
   return { ok: true, path, kind: "zip" };
+}
+
+/** Convert without Electron dialogs (tests / automation). */
+export function convertFiveMSourceToOiv(
+  sourcePath: string,
+  kind: "zip" | "folder",
+  outputPath: string,
+): FiveMConvertResult {
+  let workRoot = sourcePath;
+  let tempExtract: string | null = null;
+  try {
+    if (kind === "zip") {
+      const dest = mkdtempSync(join(tmpdir(), "hub-fivem-"));
+      tempExtract = dest;
+      const zip = new AdmZip(sourcePath);
+      zip.extractAllTo(dest, true);
+      workRoot = dest;
+    } else if (!statSync(sourcePath).isDirectory()) {
+      return { ok: false, error: "Folder path is not a directory." };
+    }
+
+    const vehicle = resolveVehicleRoot(workRoot);
+    if (!vehicle) {
+      return {
+        ok: false,
+        error:
+          "Couldn't find data/ and stream/ in that pack. Expected a FiveM vehicle resource layout.",
+      };
+    }
+    const out = outputPath.toLowerCase().endsWith(".oiv")
+      ? outputPath
+      : `${outputPath}.oiv`;
+    return stageAndBuildOiv(vehicle, out);
+  } catch (err) {
+    return {
+      ok: false,
+      error: `Convert failed: ${String(err instanceof Error ? err.message : err)}`,
+    };
+  } finally {
+    if (tempExtract) rmSync(tempExtract, { recursive: true, force: true });
+  }
 }
 
 export async function convertFiveMVehicleToOiv(

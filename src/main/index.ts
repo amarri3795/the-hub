@@ -22,6 +22,11 @@ import {
   setSavePath,
 } from "./saves";
 import {
+  convertFiveMVehicleToOiv,
+  openPathInFolder,
+  pickFiveMVehicleSource,
+} from "./fivemToSp";
+import {
   inspectSaveFile,
   listSaveFiles,
   readSaveBytes,
@@ -284,6 +289,17 @@ app.whenReady().then(() => {
       autoFindSavePath(gameId, gameName, installPath, steamAppId, {
         force: !!force,
       }),
+  );
+  ipcMain.handle("hub:fivem-pick-source", () => {
+    if (!isPremiumUnlocked()) return premiumDenied("FiveM → Story Mode converter");
+    return pickFiveMVehicleSource();
+  });
+  ipcMain.handle("hub:fivem-convert-oiv", (_e, sourcePath?: string) => {
+    if (!isPremiumUnlocked()) return premiumDenied("FiveM → Story Mode converter");
+    return convertFiveMVehicleToOiv(sourcePath);
+  });
+  ipcMain.handle("hub:show-in-folder", (_e, targetPath: string) =>
+    openPathInFolder(targetPath),
   );
   ipcMain.handle("hub:save-notes", (_e, gameId: string, notes: string) =>
     saveNotes(gameId, notes),

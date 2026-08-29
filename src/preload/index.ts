@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
   ActionResult,
+  FiveMConvertResult,
   GameExtras,
   GridDensity,
   HubGame,
@@ -54,6 +55,13 @@ const api = {
       steamAppId,
       force,
     ),
+  pickFiveMVehicleSource: (): Promise<
+    ActionResult & { path?: string; kind?: "zip" | "folder" }
+  > => ipcRenderer.invoke("hub:fivem-pick-source"),
+  convertFiveMToOiv: (sourcePath?: string): Promise<FiveMConvertResult> =>
+    ipcRenderer.invoke("hub:fivem-convert-oiv", sourcePath),
+  showInFolder: (targetPath: string): Promise<ActionResult> =>
+    ipcRenderer.invoke("hub:show-in-folder", targetPath),
   saveNotes: (gameId: string, notes: string): Promise<ActionResult> =>
     ipcRenderer.invoke("hub:save-notes", gameId, notes),
   createBackup: (gameId: string): Promise<ActionResult> =>

@@ -21,6 +21,7 @@ Unlocks permanently after entering a valid license key (stored in local prefs):
 - Collections / playlists (create, assign, filter) + Steam category import
 - Save backups (create / restore / delete) — linking a save folder stays free
 - Save hex editor for single-player games (browse linked saves, edit bytes, find/replace values like money, JSON field helpers) — auto-backups before every write
+- FiveM → GTA V Story Mode car converter (builds OpenIV `.oiv` packages from FiveM `data/` + `stream/` vehicle packs)
 - Big Picture mode
 - Per-game launch options (args, cwd, run as admin)
 - Accent themes beyond the default blue

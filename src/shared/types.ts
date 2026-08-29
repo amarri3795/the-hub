@@ -143,3 +143,11 @@ export type SaveScanResult = ActionResult & {
 export type SaveReplaceResult = ActionResult & {
   replaced?: number;
 };
+
+export type FiveMConvertResult = ActionResult & {
+  spawnName?: string;
+  packName?: string;
+  outputPath?: string;
+  metaFiles?: string[];
+  streamFiles?: string[];
+};

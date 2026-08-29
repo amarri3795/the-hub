@@ -432,6 +432,49 @@ body {
   margin-bottom: 0.65rem;
 }
 
+.fivem-modal {
+  width: min(520px, 100%);
+}
+
+.fivem-steps {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  display: grid;
+  gap: 0.35rem;
+  line-height: 1.4;
+}
+
+.fivem-result {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.fivem-result.ok {
+  border-color: rgba(163, 230, 53, 0.35);
+  background: rgba(163, 230, 53, 0.06);
+}
+
+.fivem-result.err {
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(251, 113, 133, 0.08);
+  color: #fecdd3;
+}
+
+.fivem-result p {
+  margin: 0;
+}
+
+.fivem-result code,
+.fivem-modal code {
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  font-size: 0.85em;
+}
+
 .accent-row {
   display: flex;
   align-items: center;

@@ -12,6 +12,7 @@ import type {
 } from "../../shared/types";
 import { TitleBar } from "./components/TitleBar";
 import { SaveEditorPanel } from "./components/SaveEditorPanel";
+import { FiveMConverterModal } from "./components/FiveMConverterModal";
 import hubMark from "./assets/hub-mark.svg";
 
 type StoreFilter = "all" | StoreId;
@@ -38,6 +39,7 @@ const PREMIUM_BULLETS = [
   "Collections & Steam category import",
   "Save backups (create & restore)",
   "Save hex editor (bytes + money/stats find)",
+  "FiveM → Story Mode car converter",
   "Big Picture mode",
   "Per-game launch options",
   "Accent themes beyond default",
@@ -199,6 +201,7 @@ export default function App() {
   const [licenseDraft, setLicenseDraft] = useState("");
   const [premiumModal, setPremiumModal] = useState<PremiumModalState>(null);
   const [activating, setActivating] = useState(false);
+  const [fivemOpen, setFivemOpen] = useState(false);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
   const licenseInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -606,6 +609,17 @@ export default function App() {
                 }}
               >
                 {bigPicture ? "Exit Big Picture" : "Big Picture"}
+              </button>
+              <button
+                className="btn ghost"
+                type="button"
+                onClick={() => {
+                  if (!requirePremium("FiveM → Story Mode converter")) return;
+                  setFivemOpen(true);
+                }}
+                title="Convert FiveM cars to GTA V Story Mode (.oiv)"
+              >
+                FiveM → SP{!isPremium ? " ★" : ""}
               </button>
               <button
                 className="btn ghost"
@@ -1362,6 +1376,13 @@ export default function App() {
           </div>
         </div>
       ) : null}
+
+      <FiveMConverterModal
+        open={fivemOpen}
+        isPremium={isPremium}
+        requirePremium={requirePremium}
+        onClose={() => setFivemOpen(false)}
+      />
     </div>
   );
 }

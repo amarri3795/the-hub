@@ -3,6 +3,9 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  openSync,
+  readSync,
+  closeSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -166,6 +169,14 @@ function parseSpawnName(vehiclesMetaXml: string): string | null {
   return txd ? txd.trim() : null;
 }
 
+function findVehiclesMeta(root: string): string | null {
+  const files = listFilesRecursive(root);
+  const hit = files.find(
+    (f) => basename(f).toLowerCase() === "vehicles.meta",
+  );
+  return hit ?? null;
+}
+
 function resolveVehicleRoot(extractedOrFolder: string): {
   root: string;
   dataDir: string;
@@ -180,14 +191,78 @@ function resolveVehicleRoot(extractedOrFolder: string): {
       streamDir,
     };
   }
-  // Some packs put metas next to stream without a data/ folder.
+  // Packs with stream/ but metas beside it (no data/ folder).
   if (streamDir) {
-    const siblingData = join(dirname(streamDir), "data");
+    const packRoot = dirname(streamDir);
+    const siblingData = join(packRoot, "data");
     if (existsSync(siblingData)) {
-      return { root: dirname(streamDir), dataDir: siblingData, streamDir };
+      return { root: packRoot, dataDir: siblingData, streamDir };
+    }
+    const vehiclesMeta = findVehiclesMeta(packRoot);
+    if (vehiclesMeta) {
+      const metaParent = dirname(vehiclesMeta);
+      if (metaParent.toLowerCase() !== streamDir.toLowerCase()) {
+        return { root: packRoot, dataDir: metaParent, streamDir };
+      }
     }
   }
   return null;
+}
+
+/** Detect webpage-saved-as-.zip and other non-zip files before AdmZip throws. */
+function inspectZipCandidate(zipPath: string): string | null {
+  let fd: number | null = null;
+  try {
+    const st = statSync(zipPath);
+    if (!st.isFile() || st.size < 22) {
+      return "That file is empty or too small to be a FiveM vehicle zip.";
+    }
+    fd = openSync(zipPath, "r");
+    const buf = Buffer.alloc(Math.min(64, st.size));
+    readSync(fd, buf, 0, buf.length, 0);
+    const head = buf.toString("utf8");
+    const lower = head.toLowerCase();
+    if (
+      lower.includes("<!doctype html") ||
+      lower.includes("<html") ||
+      lower.startsWith("<!doctype")
+    ) {
+      return "That .zip is actually a webpage (HTML), not the car files. Re-download the FiveM resource, or use Convert from folder on the unpacked pack (needs data/ + stream/).";
+    }
+    const sig = buf.readUInt32LE(0);
+    const isZip =
+      sig === 0x04034b50 || // PK\x03\x04
+      sig === 0x06054b50 || // empty
+      sig === 0x08074b50;
+    if (!isZip) {
+      if (head.startsWith("Rar!") || (buf[0] === 0x52 && buf[1] === 0x61)) {
+        return "That file looks like a .rar, not a .zip. Extract it first, then use Convert from folder on the folder that has data/ + stream/.";
+      }
+      if (buf[0] === 0x37 && buf[1] === 0x7a) {
+        return "That file looks like a .7z archive. Extract it first, then use Convert from folder on the folder that has data/ + stream/.";
+      }
+      return "That file is not a valid .zip. Use the real FiveM vehicle pack zip, or Convert from folder (data/ + stream/).";
+    }
+    return null;
+  } catch {
+    return "Could not read that zip file.";
+  } finally {
+    if (fd !== null) {
+      try {
+        closeSync(fd);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
+
+function explainZipExtractError(err: unknown): string {
+  const msg = String(err);
+  if (/invalid or unsupported zip|no end header|invalid signature/i.test(msg)) {
+    return "That .zip is corrupt or not a real zip (browsers sometimes save a download page as .zip). Use the actual FiveM vehicle files, or Convert from folder.";
+  }
+  return msg.replace(/^Error:\s*/, "");
 }
 
 function collectMetas(dataDir: string): Array<MetaSpec & { absPath: string }> {
@@ -372,9 +447,16 @@ ${streamLines}
 }
 
 function extractZipToTemp(zipPath: string): string {
+  const bad = inspectZipCandidate(zipPath);
+  if (bad) throw new Error(bad);
   const dest = mkdtempSync(join(tmpdir(), "hub-fivem-"));
-  const zip = new AdmZip(zipPath);
-  zip.extractAllTo(dest, true);
+  try {
+    const zip = new AdmZip(zipPath);
+    zip.extractAllTo(dest, true);
+  } catch (err) {
+    rmSync(dest, { recursive: true, force: true });
+    throw new Error(explainZipExtractError(err));
+  }
   return dest;
 }
 
@@ -527,6 +609,58 @@ export async function pickFiveMVehicleSource(
   return { ok: true, path, kind: "zip" };
 }
 
+export function convertFiveMSourceToOiv(
+  sourcePath: string,
+  kind: "zip" | "folder",
+  outputPath: string,
+): FiveMConvertResult {
+  let workRoot = sourcePath;
+  let tempExtract: string | null = null;
+  try {
+    if (kind === "zip") {
+      tempExtract = extractZipToTemp(sourcePath);
+      workRoot = tempExtract;
+    } else {
+      try {
+        if (!statSync(sourcePath).isDirectory()) {
+          return { ok: false, error: "Folder path is not a directory." };
+        }
+      } catch {
+        return { ok: false, error: "Could not read that folder." };
+      }
+    }
+
+    const vehicle = resolveVehicleRoot(workRoot);
+    if (!vehicle) {
+      return {
+        ok: false,
+        error:
+          "Couldn't find data/ and stream/ in that pack. Expected a FiveM vehicle resource layout (like your server resources: data/ + stream/).",
+      };
+    }
+
+    const out = outputPath.toLowerCase().endsWith(".oiv")
+      ? outputPath
+      : `${outputPath}.oiv`;
+    return stageAndBuildOiv(vehicle, out);
+  } catch (err) {
+    const msg = String(err instanceof Error ? err.message : err).replace(
+      /^Error:\s*/,
+      "",
+    );
+    if (
+      /webpage \(HTML\)|not a valid \.zip|corrupt or not a real zip|looks like a \.(rar|7z)|empty or too small|Could not read that zip/i.test(
+        msg,
+      )
+    ) {
+      return { ok: false, error: msg };
+    }
+    return { ok: false, error: `Convert failed: ${msg}` };
+  } finally {
+    if (tempExtract) rmSync(tempExtract, { recursive: true, force: true });
+  }
+}
+
 export async function convertFiveMVehicleToOiv(
   sourcePath?: string,
   sourceKind?: "zip" | "folder",
@@ -562,6 +696,8 @@ export async function convertFiveMVehicleToOiv(
   let tempExtract: string | null = null;
   try {
     if (kind === "zip") {
+      const bad = inspectZipCandidate(path);
+      if (bad) return { ok: false, error: bad };
       tempExtract = extractZipToTemp(path);
       workRoot = tempExtract;
     }
@@ -571,7 +707,7 @@ export async function convertFiveMVehicleToOiv(
       return {
         ok: false,
         error:
-          "Couldn't find data/ and stream/ in that pack. Expected a FiveM vehicle resource layout.",
+          "Couldn't find data/ and stream/ in that pack. Expected a FiveM vehicle resource layout (like your server resources: data/ + stream/).",
       };
     }
 
@@ -605,7 +741,15 @@ export async function convertFiveMVehicleToOiv(
 
     return stageAndBuildOiv(vehicle, outputPath);
   } catch (err) {
-    return { ok: false, error: `Convert failed: ${String(err)}` };
+    const msg = String(err instanceof Error ? err.message : err);
+    if (
+      /webpage \(HTML\)|not a valid \.zip|corrupt or not a real zip|looks like a \.(rar|7z)|empty or too small|Could not read that zip/i.test(
+        msg,
+      )
+    ) {
+      return { ok: false, error: msg.replace(/^Error:\s*/, "") };
+    }
+    return { ok: false, error: `Convert failed: ${msg.replace(/^Error:\s*/, "")}` };
   } finally {
     if (tempExtract) rmSync(tempExtract, { recursive: true, force: true });
   }

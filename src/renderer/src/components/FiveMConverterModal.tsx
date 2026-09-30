@@ -62,9 +62,15 @@ export function FiveMConverterModal({
         <h2 id="fivem-title">FiveM → Story Mode car converter</h2>
         <p className="muted">
           Pick a FiveM vehicle <strong>.zip</strong> or unpacked{" "}
-          <strong>folder</strong> (<code>data/</code> + <code>stream/</code>).
-          Hub then asks where to save the OpenIV <code>.oiv</code> (that second
-          dialog is output-only).
+          <strong>folder</strong> that looks like a server resource:{" "}
+          <code>data/</code> (with <code>vehicles.meta</code>) +{" "}
+          <code>stream/</code> (<code>.yft</code>/<code>.ytd</code>). Example:{" "}
+          <code>ZL1 Hycade</code> → spawn <code>ZL1hycade</code>.
+        </p>
+        <p className="muted small">
+          Tip: if Convert fails, you may have saved a download page as .zip
+          (HTML). Use the real pack from your FiveM resources folder, or{" "}
+          <strong>Convert from folder</strong> on the unpacked car.
         </p>
         <ol className="fivem-steps">
           <li>Pick the FiveM car zip or folder</li>
